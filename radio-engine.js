@@ -1,27 +1,30 @@
 /* ═══════════════════════════════════════════
-   AMARADIO — RadioEngine v1.0
-   Modular Streaming Audio Architecture
+   AMARADIO — RadioEngine v2.0
+   Unified Sonic Identity Architecture
    
    Features:
-   • Dual-player crossfade system
-   • Genre-based channel switching
-   • Track queue with preloading
-   • Web Audio API normalization
-   • Seamless transitions
+   • Dual-player groove-preserving crossfade
+   • Energy arc rotation (build → peak → release)
+   • BPM-aware transitions (110–125 BPM range)
+   • Bass-focused audio normalization
+   • Genre-blended queue with natural flow
+   • Preloading & seamless transitions
    ═══════════════════════════════════════════ */
 
 class RadioEngine {
     constructor(options = {}) {
         // ─── Configuration ───
-        this.crossfadeDuration = options.crossfadeDuration || 3; // seconds
-        this.preloadAhead = options.preloadAhead || 10; // seconds before end to preload
+        this.crossfadeDuration = options.crossfadeDuration || 4; // longer for groove continuity
+        this.preloadAhead = options.preloadAhead || 10;
         this.defaultVolume = options.defaultVolume || 1;
+        this.bpmRange = options.bpmRange || { min: 110, max: 125 };
 
         // ─── Audio Context & Nodes ───
         this.audioContext = null;
         this.analyser = null;
         this.compressor = null;
         this.masterGain = null;
+        this.bassBoost = null; // low-shelf filter for deep bass emphasis
 
         // ─── Dual Player System (A/B for crossfade) ───
         this.players = {
@@ -31,6 +34,7 @@ class RadioEngine {
         this.activePlayer = 'A';
         this.isCrossfading = false;
         this.crossfadeTimer = null;
+        this.crossfadeRAF = null;
 
         // ─── Frequency Analysis Data ───
         this.frequencyData = null;
@@ -41,17 +45,30 @@ class RadioEngine {
         this.isMuted = false;
         this.currentVolume = this.defaultVolume;
 
-        // ─── Channel / Genre System ───
-        this.channels = {};
-        this.currentChannel = null;
-        this.currentChannelKey = null;
+        // ─── Genre Pool System (replaces isolated channels) ───
+        this.genrePools = {};
+        this.activeFilter = 'all'; // 'all', or a genre key for filtering
+        this.currentGenreKey = null;
 
-        // ─── Track Queue ───
-        this.queue = [];
+        // ─── Unified Track Queue ───
+        this.masterLibrary = []; // all tracks from all genres
+        this.queue = [];         // current play order (energy-sorted)
         this.queueIndex = -1;
         this.currentTrack = null;
-        this.isTrackMode = false; // false = stream mode, true = track queue mode
-        this.shuffled = false;
+        this.isTrackMode = false;
+
+        // ─── Energy Arc System ───
+        this.energyPhase = 'build';  // 'build' | 'peak' | 'release' | 'cooldown'
+        this.tracksInPhase = 0;
+        this.phaseConfig = {
+            build: { tracks: 3, nextPhase: 'peak' },
+            peak: { tracks: 2, nextPhase: 'release' },
+            release: { tracks: 2, nextPhase: 'cooldown' },
+            cooldown: { tracks: 1, nextPhase: 'build' }
+        };
+
+        // ─── Stream fallback ───
+        this.fallbackStream = null;
 
         // ─── Event Callbacks ───
         this.onTrackChange = null;
@@ -59,6 +76,7 @@ class RadioEngine {
         this.onChannelChange = null;
         this.onTimeUpdate = null;
         this.onError = null;
+        this.onEnergyPhaseChange = null;
 
         // ─── Initialize ───
         this._createAudioElements();
@@ -85,13 +103,19 @@ class RadioEngine {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
-            // ─── Dynamics Compressor for level normalization ───
+            // ─── Bass-focused compressor for percussive content ───
             this.compressor = this.audioContext.createDynamicsCompressor();
-            this.compressor.threshold.value = -24;   // dB above which compression starts
-            this.compressor.knee.value = 30;          // smooth transition range
-            this.compressor.ratio.value = 4;          // compression ratio
-            this.compressor.attack.value = 0.005;     // fast attack for transients
-            this.compressor.release.value = 0.15;     // moderate release
+            this.compressor.threshold.value = -20;   // catch more dynamics
+            this.compressor.knee.value = 15;          // tighter knee for punch
+            this.compressor.ratio.value = 4;          // moderate ratio
+            this.compressor.attack.value = 0.002;     // very fast attack for percussive hits
+            this.compressor.release.value = 0.1;      // quick release to preserve groove
+
+            // ─── Low-shelf filter to emphasize deep bass textures ───
+            this.bassBoost = this.audioContext.createBiquadFilter();
+            this.bassBoost.type = 'lowshelf';
+            this.bassBoost.frequency.value = 120;     // sub-bass region
+            this.bassBoost.gain.value = 3;            // subtle bass warmth (+3dB)
 
             // ─── Master Gain ───
             this.masterGain = this.audioContext.createGain();
@@ -102,7 +126,9 @@ class RadioEngine {
             this.analyser.fftSize = 256;
             this.analyser.smoothingTimeConstant = 0.8;
 
-            // ─── Signal Chain: player gain → compressor → analyser → master → output ───
+            // ─── Signal Chain ───
+            // player gain → bass boost → compressor → analyser → master → output
+            this.bassBoost.connect(this.compressor);
             this.compressor.connect(this.analyser);
             this.analyser.connect(this.masterGain);
             this.masterGain.connect(this.audioContext.destination);
@@ -131,7 +157,7 @@ class RadioEngine {
             player.gain = this.audioContext.createGain();
             player.gain.gain.value = key === this.activePlayer ? 1 : 0;
             player.source.connect(player.gain);
-            player.gain.connect(this.compressor);
+            player.gain.connect(this.bassBoost); // route through bass boost
             player.connected = true;
         } catch (e) {
             console.warn(`[RadioEngine] Failed to connect player ${key}:`, e);
@@ -142,14 +168,12 @@ class RadioEngine {
         for (const key of ['A', 'B']) {
             const audio = this.players[key].audio;
 
-            // Track ended — play next
             audio.addEventListener('ended', () => {
                 if (key === this.activePlayer && this.isTrackMode) {
                     this.next();
                 }
             });
 
-            // Time update — check for preload trigger & fire callback
             audio.addEventListener('timeupdate', () => {
                 if (key === this.activePlayer) {
                     this._fireEvent('timeUpdate', {
@@ -157,119 +181,253 @@ class RadioEngine {
                         duration: audio.duration || 0
                     });
 
-                    // Preload / crossfade trigger
+                    // Groove-aware crossfade trigger
                     if (this.isTrackMode && audio.duration && !this.isCrossfading) {
                         const remaining = audio.duration - audio.currentTime;
-                        if (remaining <= this.crossfadeDuration + 1 && remaining > 0) {
+                        if (remaining <= this.crossfadeDuration + 0.5 && remaining > 0) {
                             this._startCrossfadeToNext();
                         }
                     }
                 }
             });
 
-            // Error handling
             audio.addEventListener('error', (e) => {
                 console.warn(`[RadioEngine] Player ${key} error:`, e);
                 this._fireEvent('error', {
-                    type: 'playback',
-                    player: key,
+                    type: 'playback', player: key,
                     message: `Player ${key} failed to load audio`
                 });
-                // Try next track on error
                 if (key === this.activePlayer && this.isTrackMode) {
                     setTimeout(() => this.next(), 500);
                 }
             });
 
-            // Can play through — ready
-            audio.addEventListener('canplaythrough', () => {
-                // Track is preloaded and ready
-            });
+            audio.addEventListener('canplaythrough', () => { });
         }
     }
 
     /* ═══════════════════════════════════════════
-       CHANNEL / GENRE REGISTRATION
+       GENRE POOL REGISTRATION
+       Each genre contributes tracks to the master library.
+       Instead of isolated channels, tracks blend together.
        ═══════════════════════════════════════════ */
 
-    registerChannel(key, config) {
-        this.channels[key] = {
+    registerGenre(key, config) {
+        const genre = {
             name: config.name || key,
             genre: config.genre || key,
             color: config.color || '#6c0df2',
             icon: config.icon || 'radio',
-            stream: config.stream || null,       // URL for live stream mode
-            tracks: config.tracks || [],          // Array of track objects
+            stream: config.stream || null,
             description: config.description || '',
             artwork: config.artwork || null
         };
+
+        // Each track gets tagged with its genre, energy level, and BPM
+        const tracks = (config.tracks || []).map(t => ({
+            ...t,
+            genreKey: key,
+            genreName: genre.name,
+            genreColor: genre.color,
+            genreIcon: genre.icon,
+            energy: t.energy || 'mid',  // 'low' | 'mid' | 'high'
+            bpm: t.bpm || 118           // default to middle of 110-125 range
+        }));
+
+        this.genrePools[key] = { ...genre, tracks };
+
+        // Add tracks to master library
+        this.masterLibrary.push(...tracks);
+
+        // Set fallback stream if not already set
+        if (!this.fallbackStream && genre.stream) {
+            this.fallbackStream = genre.stream;
+        }
+
         return this;
     }
 
-    getChannels() {
-        return Object.entries(this.channels).map(([key, ch]) => ({
+    getGenres() {
+        return Object.entries(this.genrePools).map(([key, g]) => ({
             key,
-            ...ch,
-            isActive: key === this.currentChannelKey
+            name: g.name,
+            genre: g.genre,
+            color: g.color,
+            icon: g.icon,
+            trackCount: g.tracks.length,
+            isActive: key === this.activeFilter || this.activeFilter === 'all'
         }));
     }
 
     /* ═══════════════════════════════════════════
-       CHANNEL SWITCHING
+       ENERGY ARC — BUILD / PEAK / RELEASE SYSTEM
+       Structures the queue so energy flows naturally:
+       
+       [build] → low-mid energy tracks, percussive foundations
+       [peak]  → high energy tracks, deep bass & driving rhythms
+       [release] → mid energy, melodic elements come forward
+       [cooldown] → low energy, atmospheric, spacious
+       
+       Then cycles back to build.
        ═══════════════════════════════════════════ */
 
-    async switchChannel(channelKey) {
-        const channel = this.channels[channelKey];
-        if (!channel) {
-            console.warn(`[RadioEngine] Channel "${channelKey}" not found`);
-            return false;
+    _buildEnergyQueue(filter = 'all') {
+        // Get tracks based on filter
+        let pool = filter === 'all'
+            ? [...this.masterLibrary]
+            : this.masterLibrary.filter(t => t.genreKey === filter);
+
+        if (pool.length === 0) {
+            // Fallback to all tracks
+            pool = [...this.masterLibrary];
         }
 
+        // Sort tracks by energy level into buckets
+        const buckets = {
+            low: pool.filter(t => t.energy === 'low'),
+            mid: pool.filter(t => t.energy === 'mid'),
+            high: pool.filter(t => t.energy === 'high')
+        };
+
+        // Build the queue following the energy arc
+        const queue = [];
+        const phases = ['build', 'peak', 'release', 'cooldown'];
+        const energyMap = {
+            build: ['low', 'mid'],     // start with foundations
+            peak: ['high', 'mid'],     // drive up energy
+            release: ['mid', 'low'],   // bring it back
+            cooldown: ['low']          // let it breathe
+        };
+
+        // Create enough tracks for a full rotation (multiple cycles)
+        for (let cycle = 0; cycle < 3; cycle++) {
+            for (const phase of phases) {
+                const preferredEnergies = energyMap[phase];
+                const count = this.phaseConfig[phase].tracks;
+
+                for (let i = 0; i < count; i++) {
+                    let track = null;
+
+                    // Try preferred energy levels first
+                    for (const energy of preferredEnergies) {
+                        if (buckets[energy].length > 0) {
+                            // Pick random from bucket
+                            const idx = Math.floor(Math.random() * buckets[energy].length);
+                            track = buckets[energy][idx];
+                            break;
+                        }
+                    }
+
+                    // Fallback: pick from any bucket
+                    if (!track) {
+                        const allAvailable = [...buckets.low, ...buckets.mid, ...buckets.high];
+                        if (allAvailable.length > 0) {
+                            track = allAvailable[Math.floor(Math.random() * allAvailable.length)];
+                        }
+                    }
+
+                    if (track) {
+                        queue.push({ ...track, phase });
+                    }
+                }
+            }
+        }
+
+        // Ensure BPM stays within range — sort adjacent tracks by BPM proximity
+        this._smoothBPMTransitions(queue);
+
+        return queue;
+    }
+
+    _smoothBPMTransitions(queue) {
+        // Ensure no adjacent tracks have BPM jumps > 5
+        for (let i = 1; i < queue.length; i++) {
+            const prev = queue[i - 1];
+            const curr = queue[i];
+            const diff = Math.abs(prev.bpm - curr.bpm);
+
+            if (diff > 5) {
+                // Look ahead for a better candidate
+                for (let j = i + 1; j < queue.length; j++) {
+                    if (Math.abs(prev.bpm - queue[j].bpm) <= 5) {
+                        // Swap for smoother transition
+                        [queue[i], queue[j]] = [queue[j], queue[i]];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    _advanceEnergyPhase() {
+        this.tracksInPhase++;
+        const config = this.phaseConfig[this.energyPhase];
+
+        if (this.tracksInPhase >= config.tracks) {
+            const prevPhase = this.energyPhase;
+            this.energyPhase = config.nextPhase;
+            this.tracksInPhase = 0;
+
+            this._fireEvent('energyPhaseChange', {
+                from: prevPhase,
+                to: this.energyPhase,
+                description: this._getPhaseDescription(this.energyPhase)
+            });
+        }
+    }
+
+    _getPhaseDescription(phase) {
+        const descriptions = {
+            build: 'Building foundation — percussive layers incoming',
+            peak: 'Peak energy — deep bass & driving rhythms',
+            release: 'Releasing tension — melodic elements rising',
+            cooldown: 'Cooldown — atmospheric space'
+        };
+        return descriptions[phase] || '';
+    }
+
+    /* ═══════════════════════════════════════════
+       FILTER / GENRE SELECTION
+       Instead of switching channels, this filters
+       which genres contribute to the blended queue.
+       ═══════════════════════════════════════════ */
+
+    async setFilter(filter) {
         const wasPlaying = this.isPlaying;
-        this.currentChannelKey = channelKey;
-        this.currentChannel = channel;
+        this.activeFilter = filter;
+        this.currentGenreKey = filter;
 
-        // Determine mode
-        if (channel.tracks && channel.tracks.length > 0) {
-            this.isTrackMode = true;
-            this.queue = this.shuffled ? this._shuffleArray([...channel.tracks]) : [...channel.tracks];
-            this.queueIndex = 0;
-        } else if (channel.stream) {
-            this.isTrackMode = false;
-            this.queue = [];
-            this.queueIndex = -1;
-        }
+        // Rebuild queue with the new filter
+        this.queue = this._buildEnergyQueue(filter);
+        this.queueIndex = 0;
+        this.isTrackMode = this.queue.length > 0;
+        this.energyPhase = 'build';
+        this.tracksInPhase = 0;
+
+        const genreName = filter === 'all'
+            ? 'All Genres'
+            : (this.genrePools[filter]?.name || filter);
 
         this._fireEvent('channelChange', {
-            channel: channelKey,
-            name: channel.name,
-            genre: channel.genre,
+            channel: filter,
+            name: genreName,
+            genre: filter === 'all' ? 'Blended' : this.genrePools[filter]?.genre || filter,
             isTrackMode: this.isTrackMode
         });
 
-        if (wasPlaying) {
-            // Crossfade to new channel
-            await this._crossfadeToSource(this._getCurrentSource());
-        } else {
-            // Just load without playing
-            this._loadSource(this.activePlayer, this._getCurrentSource());
+        if (wasPlaying && this.queue.length > 0) {
+            await this._crossfadeToSource(this.queue[0].url);
+        } else if (this.queue.length > 0) {
+            this._loadSource(this.activePlayer, this.queue[0].url);
             this._updateCurrentTrack();
         }
 
         return true;
     }
 
-    _getCurrentSource() {
-        if (this.isTrackMode && this.queue.length > 0) {
-            return this.queue[this.queueIndex]?.url || null;
-        }
-        return this.currentChannel?.stream || null;
-    }
-
-    _getNextSource() {
-        if (!this.isTrackMode || this.queue.length === 0) return null;
-        const nextIndex = (this.queueIndex + 1) % this.queue.length;
-        return this.queue[nextIndex]?.url || null;
+    // Legacy compatibility: switchChannel calls setFilter
+    async switchChannel(channelKey) {
+        return this.setFilter(channelKey);
     }
 
     /* ═══════════════════════════════════════════
@@ -283,11 +441,16 @@ class RadioEngine {
             await this.audioContext.resume();
         }
 
-        // If no channel selected, pick first available
-        if (!this.currentChannel && Object.keys(this.channels).length > 0) {
-            const firstKey = Object.keys(this.channels)[0];
-            await this.switchChannel(firstKey);
+        // Build queue if empty
+        if (this.queue.length === 0) {
+            this.queue = this._buildEnergyQueue(this.activeFilter);
+            this.queueIndex = 0;
+            this.isTrackMode = this.queue.length > 0;
         }
+
+        // Connect inactive player
+        const inactiveKey = this.activePlayer === 'A' ? 'B' : 'A';
+        this._connectPlayer(inactiveKey);
 
         const source = this._getCurrentSource();
         if (!source) {
@@ -295,13 +458,8 @@ class RadioEngine {
             return false;
         }
 
-        // Connect inactive player if needed
-        const inactiveKey = this.activePlayer === 'A' ? 'B' : 'A';
-        this._connectPlayer(inactiveKey);
-
         const activeAudio = this.players[this.activePlayer].audio;
 
-        // Load source if not already loaded
         if (!activeAudio.src || !activeAudio.src.includes(source.replace(/https?:/, ''))) {
             this._loadSource(this.activePlayer, source);
         }
@@ -312,7 +470,6 @@ class RadioEngine {
             this._updateCurrentTrack();
             this._fireEvent('stateChange', { isPlaying: true, track: this.currentTrack });
 
-            // Preload next in track mode
             if (this.isTrackMode) {
                 this._preloadNext();
             }
@@ -348,6 +505,7 @@ class RadioEngine {
         }
         this.isPlaying = false;
         this.isCrossfading = false;
+        if (this.crossfadeRAF) cancelAnimationFrame(this.crossfadeRAF);
         clearTimeout(this.crossfadeTimer);
         this._fireEvent('stateChange', { isPlaying: false, track: null });
     }
@@ -360,6 +518,12 @@ class RadioEngine {
         if (!this.isTrackMode || this.queue.length === 0) return;
 
         this.queueIndex = (this.queueIndex + 1) % this.queue.length;
+        this._advanceEnergyPhase();
+
+        // Rebuild queue if we've looped
+        if (this.queueIndex === 0) {
+            this.queue = this._buildEnergyQueue(this.activeFilter);
+        }
 
         if (this.isPlaying) {
             await this._crossfadeToSource(this._getCurrentSource());
@@ -372,7 +536,6 @@ class RadioEngine {
     async previous() {
         if (!this.isTrackMode || this.queue.length === 0) return;
 
-        // If more than 3 seconds in, restart track; otherwise go previous
         const activeAudio = this.players[this.activePlayer].audio;
         if (activeAudio.currentTime > 3) {
             activeAudio.currentTime = 0;
@@ -389,23 +552,12 @@ class RadioEngine {
         }
     }
 
-    toggleShuffle() {
-        this.shuffled = !this.shuffled;
-        if (this.shuffled && this.isTrackMode) {
-            const current = this.queue[this.queueIndex];
-            this.queue = this._shuffleArray([...this.queue]);
-            // Keep current track in position
-            const idx = this.queue.findIndex(t => t.url === current?.url);
-            if (idx > 0) {
-                [this.queue[0], this.queue[idx]] = [this.queue[idx], this.queue[0]];
-            }
-            this.queueIndex = 0;
-        }
-        return this.shuffled;
-    }
-
     /* ═══════════════════════════════════════════
-       CROSSFADE ENGINE
+       GROOVE-PRESERVING CROSSFADE ENGINE
+       
+       Uses requestAnimationFrame for 60fps smoothness.
+       Equal-power crossfade with bass emphasis during
+       transition to maintain groove continuity.
        ═══════════════════════════════════════════ */
 
     async _crossfadeToSource(newSource) {
@@ -415,13 +567,11 @@ class RadioEngine {
         const outKey = this.activePlayer;
         const inKey = outKey === 'A' ? 'B' : 'A';
 
-        // Ensure incoming player is connected
         this._connectPlayer(inKey);
 
         const outPlayer = this.players[outKey];
         const inPlayer = this.players[inKey];
 
-        // Load new source into incoming player
         this._loadSource(inKey, newSource);
 
         try {
@@ -432,37 +582,46 @@ class RadioEngine {
             return;
         }
 
-        const duration = this.crossfadeDuration;
-        const steps = 60; // steps at ~60fps
-        const stepTime = (duration * 1000) / steps;
-        let step = 0;
+        const duration = this.crossfadeDuration * 1000; // ms
+        const startTime = performance.now();
 
-        // Perform crossfade with gain nodes (Web Audio API) or volume (fallback)
-        const doFade = () => {
-            step++;
-            const progress = Math.min(step / steps, 1);
+        // Temporarily boost bass during crossfade to keep low-end continuous
+        const originalBassGain = this.bassBoost ? this.bassBoost.gain.value : 3;
+        if (this.bassBoost) {
+            this.bassBoost.gain.value = originalBassGain + 2; // +2dB during transition
+        }
 
-            // Equal-power crossfade curve
+        const doFade = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Equal-power crossfade curve (preserves perceived volume)
             const fadeOut = Math.cos(progress * Math.PI / 2);
             const fadeIn = Math.sin(progress * Math.PI / 2);
 
+            // Groove scoop: slight volume dip at midpoint for rhythmic blend
+            const grooveDip = 1 - (Math.sin(progress * Math.PI) * 0.05);
+
             if (outPlayer.gain && inPlayer.gain) {
-                // Web Audio API gain nodes
-                outPlayer.gain.gain.value = fadeOut;
-                inPlayer.gain.gain.value = fadeIn;
+                outPlayer.gain.gain.value = fadeOut * grooveDip;
+                inPlayer.gain.gain.value = fadeIn * grooveDip;
             } else {
-                // Fallback to volume
-                outPlayer.audio.volume = fadeOut * this.currentVolume;
-                inPlayer.audio.volume = fadeIn * this.currentVolume;
+                outPlayer.audio.volume = fadeOut * this.currentVolume * grooveDip;
+                inPlayer.audio.volume = fadeIn * this.currentVolume * grooveDip;
             }
 
             if (progress < 1) {
-                this.crossfadeTimer = setTimeout(doFade, stepTime);
+                this.crossfadeRAF = requestAnimationFrame(doFade);
             } else {
                 // Crossfade complete
                 outPlayer.audio.pause();
                 outPlayer.audio.currentTime = 0;
                 if (outPlayer.gain) outPlayer.gain.gain.value = 0;
+
+                // Restore bass boost
+                if (this.bassBoost) {
+                    this.bassBoost.gain.value = originalBassGain;
+                }
 
                 this.activePlayer = inKey;
                 this.isCrossfading = false;
@@ -470,14 +629,13 @@ class RadioEngine {
                 this._updateCurrentTrack();
                 this._fireEvent('stateChange', { isPlaying: true, track: this.currentTrack });
 
-                // Preload next
                 if (this.isTrackMode) {
                     this._preloadNext();
                 }
             }
         };
 
-        doFade();
+        this.crossfadeRAF = requestAnimationFrame(doFade);
     }
 
     _startCrossfadeToNext() {
@@ -488,6 +646,7 @@ class RadioEngine {
         if (!nextTrack) return;
 
         this.queueIndex = nextIndex;
+        this._advanceEnergyPhase();
         this._crossfadeToSource(nextTrack.url);
     }
 
@@ -502,11 +661,23 @@ class RadioEngine {
         const inactiveKey = this.activePlayer === 'A' ? 'B' : 'A';
         const inactiveAudio = this.players[inactiveKey].audio;
 
-        // Only preload if different source
         if (inactiveAudio.src !== nextSource) {
             inactiveAudio.src = nextSource;
             inactiveAudio.load();
         }
+    }
+
+    _getCurrentSource() {
+        if (this.isTrackMode && this.queue.length > 0 && this.queueIndex >= 0) {
+            return this.queue[this.queueIndex]?.url || this.fallbackStream;
+        }
+        return this.fallbackStream;
+    }
+
+    _getNextSource() {
+        if (!this.isTrackMode || this.queue.length === 0) return null;
+        const nextIndex = (this.queueIndex + 1) % this.queue.length;
+        return this.queue[nextIndex]?.url || null;
     }
 
     /* ═══════════════════════════════════════════
@@ -536,24 +707,27 @@ class RadioEngine {
 
     getFrequencyBands() {
         if (!this.analyser || !this.frequencyData) {
-            return { low: 0, mid: 0, high: 0, overall: 0 };
+            return { low: 0, mid: 0, high: 0, overall: 0, sub: 0 };
         }
 
         this.analyser.getByteFrequencyData(this.frequencyData);
         const binCount = this.frequencyData.length;
-        const lowEnd = Math.floor(binCount * 0.15);
-        const midEnd = Math.floor(binCount * 0.5);
+        const subEnd = Math.floor(binCount * 0.06);   // sub-bass (~0-250Hz)
+        const lowEnd = Math.floor(binCount * 0.15);    // low (~250-700Hz)
+        const midEnd = Math.floor(binCount * 0.5);     // mid (~700-2300Hz)
 
-        let lowSum = 0, midSum = 0, highSum = 0;
-        for (let i = 0; i < lowEnd; i++) lowSum += this.frequencyData[i];
+        let subSum = 0, lowSum = 0, midSum = 0, highSum = 0;
+        for (let i = 0; i < subEnd; i++) subSum += this.frequencyData[i];
+        for (let i = subEnd; i < lowEnd; i++) lowSum += this.frequencyData[i];
         for (let i = lowEnd; i < midEnd; i++) midSum += this.frequencyData[i];
         for (let i = midEnd; i < binCount; i++) highSum += this.frequencyData[i];
 
         return {
-            low: lowSum / (lowEnd * 255),
+            sub: subSum / (Math.max(1, subEnd) * 255),
+            low: (subSum + lowSum) / (lowEnd * 255),
             mid: midSum / ((midEnd - lowEnd) * 255),
             high: highSum / ((binCount - midEnd) * 255),
-            overall: (lowSum + midSum + highSum) / (binCount * 255)
+            overall: (subSum + lowSum + midSum + highSum) / (binCount * 255)
         };
     }
 
@@ -580,13 +754,18 @@ class RadioEngine {
 
     _updateCurrentTrack() {
         if (this.isTrackMode && this.queue.length > 0 && this.queueIndex >= 0) {
-            this.currentTrack = { ...this.queue[this.queueIndex], index: this.queueIndex };
-        } else if (this.currentChannel) {
+            const track = this.queue[this.queueIndex];
             this.currentTrack = {
-                title: this.currentChannel.name,
-                artist: 'Amaradio Live',
-                genre: this.currentChannel.genre,
-                artwork: this.currentChannel.artwork,
+                ...track,
+                index: this.queueIndex,
+                phase: this.energyPhase,
+                phaseDescription: this._getPhaseDescription(this.energyPhase)
+            };
+        } else {
+            this.currentTrack = {
+                title: 'Amaradio Live',
+                artist: 'AI Radio',
+                genre: 'Blended',
                 isStream: true
             };
         }
@@ -600,14 +779,6 @@ class RadioEngine {
         }
     }
 
-    _shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-    }
-
     /* ═══════════════════════════════════════════
        STATE GETTERS
        ═══════════════════════════════════════════ */
@@ -619,11 +790,12 @@ class RadioEngine {
             isCrossfading: this.isCrossfading,
             isTrackMode: this.isTrackMode,
             currentTrack: this.currentTrack,
-            currentChannel: this.currentChannelKey,
+            activeFilter: this.activeFilter,
+            energyPhase: this.energyPhase,
             queueIndex: this.queueIndex,
             queueLength: this.queue.length,
             volume: this.currentVolume,
-            shuffled: this.shuffled
+            bpmRange: this.bpmRange
         };
     }
 

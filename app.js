@@ -40,56 +40,63 @@ const channelButtons = document.querySelectorAll('.channel-btn');
    ═══════════════════════════════════════════ */
 
 const radio = new RadioEngine({
-  crossfadeDuration: 3,
-  preloadAhead: 10
+  crossfadeDuration: 4,     // longer for groove continuity
+  preloadAhead: 10,
+  bpmRange: { min: 110, max: 125 }
 });
 
-// ─── Register Genre Channels ───
+// ─── Register Genre Pools (blended into one seamless flow) ───
 
-radio.registerChannel('hiphop', {
-  name: 'Hip-Hop Frequency',
+radio.registerGenre('hiphop', {
+  name: 'Hip-Hop',
   genre: 'Hip-Hop',
   icon: 'mic',
   color: '#f59e0b',
-  description: 'Underground vibes & lyrical frequencies',
+  description: 'Boom-bap drums & deep 808 bass',
   stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
   tracks: [
-    { title: 'Midnight Cipher', artist: 'Neural Beats', genre: 'Hip-Hop', duration: '4:22', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Dark Alley Flow', artist: 'AI Lyricist', genre: 'Hip-Hop', duration: '3:45', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Code Switch', artist: 'Binary Bars', genre: 'Hip-Hop', duration: '4:01', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
+    { title: 'Midnight Cipher', artist: 'Neural Beats', duration: '4:22', bpm: 115, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Dark Alley Flow', artist: 'AI Lyricist', duration: '3:45', bpm: 118, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Code Switch', artist: 'Binary Bars', duration: '4:01', bpm: 112, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Bass Cathedral', artist: 'Sub Prophet', duration: '5:10', bpm: 120, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Ghost Protocol', artist: 'The Architect', duration: '3:58', bpm: 110, energy: 'low', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
   ]
 });
 
-radio.registerChannel('amapiano', {
-  name: 'Amapiano Pulse',
+radio.registerGenre('amapiano', {
+  name: 'Amapiano',
   genre: 'Amapiano',
   icon: 'piano',
   color: '#10b981',
-  description: 'Deep log drum rhythms & synth melodies',
+  description: 'Log drums, shakers & lush keys',
   stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
   tracks: [
-    { title: 'Johannesburg Sunrise', artist: 'Synth Tribe', genre: 'Amapiano', duration: '5:30', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Shaker Protocol', artist: 'AMA.AI', genre: 'Amapiano', duration: '4:15', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Log Drum Machine', artist: 'Deep Pulse', genre: 'Amapiano', duration: '6:02', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
+    { title: 'Johannesburg Sunrise', artist: 'Synth Tribe', duration: '5:30', bpm: 113, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Shaker Protocol', artist: 'AMA.AI', duration: '4:15', bpm: 116, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Log Drum Machine', artist: 'Deep Pulse', duration: '6:02', bpm: 115, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Soweto Moon', artist: 'Kabza Ghost', duration: '4:45', bpm: 112, energy: 'low', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Bassline Religion', artist: 'Yano Synth', duration: '5:20', bpm: 118, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
   ]
 });
 
-radio.registerChannel('industrial', {
-  name: 'Industrial Void',
-  genre: 'Experimental',
-  icon: 'factory',
-  color: '#ef4444',
-  description: 'Harsh textures & machine rhythms',
+radio.registerGenre('afrotech', {
+  name: 'AfroTech',
+  genre: 'AfroTech',
+  icon: 'sensors',
+  color: '#8b5cf6',
+  description: 'Tribal percussion meets electronic synthesis',
   stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
   tracks: [
-    { title: 'Rust & Circuitry', artist: 'Machine Ghost', genre: 'Industrial', duration: '5:45', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Static Worship', artist: 'Void Collective', genre: 'Industrial', duration: '6:10', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Abandoned Frequency', artist: 'Signal Decay', genre: 'Industrial', duration: '4:33', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
+    { title: 'Tribal Circuit', artist: 'Voltage Drum', duration: '5:45', bpm: 122, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Motherboard Rhythm', artist: 'Afro Pulse', duration: '6:10', bpm: 120, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Savanna Frequency', artist: 'Signal Griot', duration: '4:33', bpm: 118, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Djembe Algorithm', artist: 'Coded Roots', duration: '5:15', bpm: 124, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Night Market Bass', artist: 'Lagos Digital', duration: '4:50', bpm: 115, energy: 'low', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
   ]
 });
 
-// ─── Set default channel ───
-radio.switchChannel('hiphop');
+// ─── Start with blended flow (all genres mixed) ───
+radio.setFilter('all');
 
 /* ═══════════════════════════════════════════
    ENGINE EVENT HANDLERS
@@ -675,8 +682,9 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyM') toggleMute();
   if (e.code === 'ArrowRight') skipNext();
   if (e.code === 'ArrowLeft') skipPrev();
-  // Channel quick-switch: 1, 2, 3
+  // Genre filter: 0=all blend, 1=hip-hop, 2=amapiano, 3=afrotech
+  if (e.code === 'Digit0') switchChannel('all');
   if (e.code === 'Digit1') switchChannel('hiphop');
   if (e.code === 'Digit2') switchChannel('amapiano');
-  if (e.code === 'Digit3') switchChannel('industrial');
+  if (e.code === 'Digit3') switchChannel('afrotech');
 });
