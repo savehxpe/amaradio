@@ -134,6 +134,31 @@
                 <canvas id="waveformCanvas"></canvas>
             </div>
 
+            <!-- Channel Selector -->
+            <div class="flex items-center justify-center gap-3 mb-8 z-10 flex-wrap">
+                <button
+                    class="channel-btn channel-active flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-primary/10 hover:border-primary/40 transition-all duration-300 text-xs font-bold tracking-wider uppercase"
+                    data-channel="hiphop" onclick="switchChannel('hiphop')">
+                    <span class="material-symbols-outlined text-sm"
+                        style="font-variation-settings: 'FILL' 1;">mic</span>
+                    <span>Hip-Hop</span>
+                </button>
+                <button
+                    class="channel-btn flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-primary/10 hover:border-primary/40 transition-all duration-300 text-xs font-bold tracking-wider uppercase"
+                    data-channel="amapiano" onclick="switchChannel('amapiano')">
+                    <span class="material-symbols-outlined text-sm"
+                        style="font-variation-settings: 'FILL' 1;">piano</span>
+                    <span>Amapiano</span>
+                </button>
+                <button
+                    class="channel-btn flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-primary/10 hover:border-primary/40 transition-all duration-300 text-xs font-bold tracking-wider uppercase"
+                    data-channel="industrial" onclick="switchChannel('industrial')">
+                    <span class="material-symbols-outlined text-sm"
+                        style="font-variation-settings: 'FILL' 1;">factory</span>
+                    <span>Industrial</span>
+                </button>
+            </div>
+
             <!-- Typography Lockup -->
             <div class="text-center space-y-4 max-w-4xl mx-auto z-10">
                 <h1 class="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 glitch-hover cursor-default select-none"
@@ -186,9 +211,10 @@
                     <div class="flex flex-col overflow-hidden">
                         <span id="nowPlayingLabel"
                             class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Offline</span>
-                        <span class="text-white font-bold text-sm truncate">Cyberpunk Dreams</span>
-                        <span class="text-slate-400 text-xs truncate">The Glitch Mob • <span id="trackTime">0:00</span>
-                            / 5:12</span>
+                        <span id="trackTitle" class="text-white font-bold text-sm truncate">Midnight Cipher</span>
+                        <span class="text-slate-400 text-xs truncate"><span id="trackArtist">Neural Beats</span> • <span
+                                id="trackTime">0:00</span>
+                            / <span id="trackDuration">∞</span></span>
                     </div>
                 </div>
                 <div
@@ -216,6 +242,17 @@
                                 class="text-white font-bold">4,203</span> LISTENING</span>
                     </div>
                     <div class="flex items-center gap-3">
+                        <button class="text-slate-400 hover:text-white transition-colors ripple-btn" title="Previous"
+                            onclick="skipPrev()">
+                            <span class="material-symbols-outlined"
+                                style="font-variation-settings: 'FILL' 1;">skip_previous</span>
+                        </button>
+                        <button class="text-slate-400 hover:text-white transition-colors ripple-btn" title="Next"
+                            onclick="skipNext()">
+                            <span class="material-symbols-outlined"
+                                style="font-variation-settings: 'FILL' 1;">skip_next</span>
+                        </button>
+                        <div class="w-px h-5 bg-white/10"></div>
                         <button id="favBtn" class="text-slate-400 hover:text-red-400 transition-colors ripple-btn"
                             onclick="toggleFavorite(this)">
                             <span class="material-symbols-outlined">favorite</span>
@@ -426,16 +463,13 @@
         </aside>
     </div>
 
-    <!-- Hidden Audio -->
-    <audio id="radioAudio" loop preload="auto">
-        <source src="https://stream.zeno.fm/0r0xa792kwzuv" type="audio/mpeg" />
-    </audio>
-
     <!-- Toast notification -->
     <div id="toast"
         class="fixed bottom-28 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full bg-primary/90 backdrop-blur-md text-white text-sm font-bold tracking-wider shadow-2xl opacity-0 translate-y-4 transition-all duration-300 pointer-events-none">
     </div>
 
+    <!-- Audio Engine (modular) -->
+    <script src="radio-engine.js"></script>
     <script src="app.js"></script>
 </body>
 

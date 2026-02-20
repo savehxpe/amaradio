@@ -1,38 +1,24 @@
 /* ═══════════════════════════════════════════
-   AMARADIO — Immersive Radio Engine v2.0
-   Web Audio API + High-Performance Animations
-   Target: 60fps on all interactions
+   AMARADIO — Interactive App v2.0
+   Uses RadioEngine for streaming
    ═══════════════════════════════════════════ */
 
-// ─── State ───
-let isPlaying = false;
-let isMuted = false;
+// ─── UI State ───
 let isFavorite = false;
 let schedulePanelOpen = false;
 let aboutOpen = false;
 let elapsedSeconds = 0;
 let timerInterval = null;
 
-// ─── Audio Analysis State ───
-let audioContext = null;
-let analyser = null;
-let sourceNode = null;
-let frequencyData = null;
-let timeDomainData = null;
-let audioConnected = false;
-let animationFrameId = null;
-
-// Beat detection state
-let beatThreshold = 0.6;
-let lastBeatTime = 0;
-let beatCooldown = 150; // ms between beats
+// ─── Beat Detection State ───
 let energyHistory = [];
-const ENERGY_HISTORY_SIZE = 43; // ~1 second at 60fps
+const ENERGY_HISTORY_SIZE = 43;
+let lastBeatTime = 0;
+let beatCooldown = 150;
 let currentBPM = 128;
 let beatTimes = [];
 
 // ─── DOM Elements ───
-const audio = document.getElementById('radioAudio');
 const playIcon = document.getElementById('playIcon');
 const playLabel = document.getElementById('playLabel');
 const playButton = document.getElementById('playButton');
@@ -42,12 +28,188 @@ const waveformContainer = document.getElementById('waveformContainer');
 const waveformCanvas = document.getElementById('waveformCanvas');
 const nowPlayingLabel = document.getElementById('nowPlayingLabel');
 const trackTime = document.getElementById('trackTime');
-const neonGlow = playWrapper.querySelector('.neon-pulse, .neon-pulse-active');
-const glitchOverlay = document.getElementById('glitchOverlay');
-const heroTitle = document.getElementById('heroTitle');
 const bgImage = document.getElementById('bgImage');
+const heroTitle = document.getElementById('heroTitle');
+const trackTitleEl = document.getElementById('trackTitle');
+const trackArtistEl = document.getElementById('trackArtist');
+const trackDurationEl = document.getElementById('trackDuration');
+const channelButtons = document.querySelectorAll('.channel-btn');
 
-// ─── Waveform Canvas Setup ───
+/* ═══════════════════════════════════════════
+   RADIO ENGINE SETUP
+   ═══════════════════════════════════════════ */
+
+const radio = new RadioEngine({
+  crossfadeDuration: 3,
+  preloadAhead: 10
+});
+
+// ─── Register Genre Channels ───
+
+radio.registerChannel('hiphop', {
+  name: 'Hip-Hop Frequency',
+  genre: 'Hip-Hop',
+  icon: 'mic',
+  color: '#f59e0b',
+  description: 'Underground vibes & lyrical frequencies',
+  stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
+  tracks: [
+    { title: 'Midnight Cipher', artist: 'Neural Beats', genre: 'Hip-Hop', duration: '4:22', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Dark Alley Flow', artist: 'AI Lyricist', genre: 'Hip-Hop', duration: '3:45', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Code Switch', artist: 'Binary Bars', genre: 'Hip-Hop', duration: '4:01', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
+  ]
+});
+
+radio.registerChannel('amapiano', {
+  name: 'Amapiano Pulse',
+  genre: 'Amapiano',
+  icon: 'piano',
+  color: '#10b981',
+  description: 'Deep log drum rhythms & synth melodies',
+  stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
+  tracks: [
+    { title: 'Johannesburg Sunrise', artist: 'Synth Tribe', genre: 'Amapiano', duration: '5:30', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Shaker Protocol', artist: 'AMA.AI', genre: 'Amapiano', duration: '4:15', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Log Drum Machine', artist: 'Deep Pulse', genre: 'Amapiano', duration: '6:02', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
+  ]
+});
+
+radio.registerChannel('industrial', {
+  name: 'Industrial Void',
+  genre: 'Experimental',
+  icon: 'factory',
+  color: '#ef4444',
+  description: 'Harsh textures & machine rhythms',
+  stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
+  tracks: [
+    { title: 'Rust & Circuitry', artist: 'Machine Ghost', genre: 'Industrial', duration: '5:45', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Static Worship', artist: 'Void Collective', genre: 'Industrial', duration: '6:10', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Abandoned Frequency', artist: 'Signal Decay', genre: 'Industrial', duration: '4:33', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
+  ]
+});
+
+// ─── Set default channel ───
+radio.switchChannel('hiphop');
+
+/* ═══════════════════════════════════════════
+   ENGINE EVENT HANDLERS
+   ═══════════════════════════════════════════ */
+
+radio.onTrackChange = (track) => {
+  if (!track) return;
+
+  // Update track info in status bar
+  if (trackTitleEl) trackTitleEl.textContent = track.title || 'Unknown';
+  if (trackArtistEl) trackArtistEl.textContent = track.artist || 'Amaradio';
+  if (trackDurationEl) trackDurationEl.textContent = track.duration || '∞';
+};
+
+radio.onStateChange = (state) => {
+  if (state.isPlaying) {
+    document.body.classList.add('is-playing');
+    playIcon.textContent = 'pause';
+    playIcon.style.marginLeft = '0';
+    playLabel.textContent = 'STREAMING';
+
+    const glowEl = playWrapper.querySelector('.neon-pulse, .neon-pulse-active');
+    if (glowEl) {
+      glowEl.classList.remove('neon-pulse');
+      glowEl.classList.add('neon-pulse-active');
+    }
+
+    eqBars.style.opacity = '1';
+    waveformContainer.style.opacity = '1';
+    resizeWaveformCanvas();
+
+    nowPlayingLabel.textContent = 'Now Playing';
+    nowPlayingLabel.classList.remove('text-slate-500');
+    nowPlayingLabel.classList.add('text-primary');
+
+    startTimer();
+    animateListenerCount(4203, 4204);
+  } else {
+    document.body.classList.remove('is-playing');
+    playIcon.textContent = 'play_arrow';
+    playIcon.style.marginLeft = '8px';
+    playLabel.textContent = 'INITIATE';
+
+    const glowEl = playWrapper.querySelector('.neon-pulse, .neon-pulse-active');
+    if (glowEl) {
+      glowEl.classList.remove('neon-pulse-active');
+      glowEl.classList.add('neon-pulse');
+    }
+
+    eqBars.style.opacity = '0';
+    waveformContainer.style.opacity = '0';
+
+    nowPlayingLabel.textContent = 'Paused';
+    nowPlayingLabel.classList.remove('text-primary');
+    nowPlayingLabel.classList.add('text-slate-500');
+
+    clearInterval(timerInterval);
+    animateListenerCount(4204, 4203);
+
+    // Reset animation CSS vars
+    const root = document.documentElement.style;
+    root.setProperty('--glow-intensity', '0');
+    root.setProperty('--beat-scale', '1');
+  }
+};
+
+radio.onChannelChange = (data) => {
+  showToast(`📻 Switched to ${data.name}`);
+  updateChannelUI(data.channel);
+
+  // Update genre badge in schedule panel
+  const genreBadge = document.getElementById('currentGenreBadge');
+  if (genreBadge) genreBadge.textContent = data.genre.toUpperCase();
+};
+
+radio.onError = (err) => {
+  console.warn('[Amaradio] Error:', err);
+  if (err.type === 'playback') {
+    showToast('⚠ Audio blocked — click again');
+  }
+};
+
+/* ═══════════════════════════════════════════
+   PLAYBACK CONTROLS
+   ═══════════════════════════════════════════ */
+
+async function togglePlayback() {
+  const result = await radio.togglePlay();
+  if (result === true) {
+    showToast('📡 Signal locked — streaming live');
+  }
+}
+
+function skipNext() {
+  radio.next();
+}
+
+function skipPrev() {
+  radio.previous();
+}
+
+function switchChannel(channelKey) {
+  radio.switchChannel(channelKey);
+}
+
+function updateChannelUI(activeKey) {
+  channelButtons.forEach(btn => {
+    const key = btn.dataset.channel;
+    if (key === activeKey) {
+      btn.classList.add('channel-active');
+    } else {
+      btn.classList.remove('channel-active');
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════
+   WAVEFORM CANVAS
+   ═══════════════════════════════════════════ */
+
 const waveCtx = waveformCanvas ? waveformCanvas.getContext('2d') : null;
 
 function resizeWaveformCanvas() {
@@ -58,117 +220,26 @@ function resizeWaveformCanvas() {
   waveformCanvas.height = rect.height * dpr;
   waveformCanvas.style.width = rect.width + 'px';
   waveformCanvas.style.height = rect.height + 'px';
-  if (waveCtx) waveCtx.scale(dpr, dpr);
+  if (waveCtx) waveCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 window.addEventListener('resize', resizeWaveformCanvas);
 resizeWaveformCanvas();
 
-/* ═══════════════════════════════════════════
-   WEB AUDIO API — ANALYZER SETUP
-   ═══════════════════════════════════════════ */
-
-function initAudioAnalyzer() {
-  if (audioConnected) return;
-
-  try {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.8;
-
-    sourceNode = audioContext.createMediaElementSource(audio);
-    sourceNode.connect(analyser);
-    analyser.connect(audioContext.destination);
-
-    frequencyData = new Uint8Array(analyser.frequencyBinCount);
-    timeDomainData = new Uint8Array(analyser.frequencyBinCount);
-
-    audioConnected = true;
-  } catch (e) {
-    console.warn('Web Audio API not available, falling back to CSS animations:', e);
-  }
-}
-
-/* ═══════════════════════════════════════════
-   AUDIO ANALYSIS — FREQUENCY BANDS + BEAT
-   ═══════════════════════════════════════════ */
-
-function getFrequencyBands() {
-  if (!analyser || !frequencyData) return { low: 0, mid: 0, high: 0, overall: 0 };
-
-  analyser.getByteFrequencyData(frequencyData);
-
-  const binCount = frequencyData.length;
-  const lowEnd = Math.floor(binCount * 0.15);   // ~0-700Hz
-  const midEnd = Math.floor(binCount * 0.5);     // ~700-2300Hz
-
-  let lowSum = 0, midSum = 0, highSum = 0;
-
-  for (let i = 0; i < lowEnd; i++) lowSum += frequencyData[i];
-  for (let i = lowEnd; i < midEnd; i++) midSum += frequencyData[i];
-  for (let i = midEnd; i < binCount; i++) highSum += frequencyData[i];
-
-  const low = lowSum / (lowEnd * 255);
-  const mid = midSum / ((midEnd - lowEnd) * 255);
-  const high = highSum / ((binCount - midEnd) * 255);
-  const overall = (low * 0.5 + mid * 0.3 + high * 0.2);
-
-  return { low, mid, high, overall };
-}
-
-function detectBeat(energy) {
-  energyHistory.push(energy);
-  if (energyHistory.length > ENERGY_HISTORY_SIZE) energyHistory.shift();
-
-  if (energyHistory.length < 10) return false;
-
-  const avg = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
-  const now = performance.now();
-
-  if (energy > avg * 1.3 && energy > beatThreshold && (now - lastBeatTime) > beatCooldown) {
-    lastBeatTime = now;
-
-    // Track beat times for BPM calculation
-    beatTimes.push(now);
-    if (beatTimes.length > 20) beatTimes.shift();
-
-    if (beatTimes.length > 3) {
-      const intervals = [];
-      for (let i = 1; i < beatTimes.length; i++) {
-        intervals.push(beatTimes[i] - beatTimes[i - 1]);
-      }
-      const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-      currentBPM = Math.round(60000 / avgInterval);
-      currentBPM = Math.max(60, Math.min(200, currentBPM)); // clamp
-    }
-
-    return true;
-  }
-
-  return false;
-}
-
-/* ═══════════════════════════════════════════
-   REACTIVE WAVEFORM — CANVAS RENDERING
-   ═══════════════════════════════════════════ */
-
 function drawWaveform(bands) {
   if (!waveCtx || !waveformCanvas) return;
-
   const rect = waveformContainer.getBoundingClientRect();
   const w = rect.width;
   const h = rect.height;
-
   waveCtx.clearRect(0, 0, w, h);
 
-  if (!analyser || !timeDomainData) {
-    // Fallback: draw idle waveform
+  const timeDomain = radio.getTimeDomainData();
+  const freqData = radio.getFrequencyData();
+
+  if (!timeDomain || !freqData) {
     drawIdleWaveform(w, h);
     return;
   }
-
-  analyser.getByteTimeDomainData(timeDomainData);
 
   const barCount = 80;
   const barWidth = (w / barCount) * 0.7;
@@ -176,21 +247,17 @@ function drawWaveform(bands) {
   const centerY = h / 2;
 
   for (let i = 0; i < barCount; i++) {
-    const dataIndex = Math.floor((i / barCount) * timeDomainData.length);
-    const value = timeDomainData[dataIndex] / 128.0 - 1; // -1 to 1
-    const freqValue = frequencyData[Math.floor((i / barCount) * frequencyData.length)] / 255;
-
+    const dataIndex = Math.floor((i / barCount) * timeDomain.length);
+    const value = timeDomain[dataIndex] / 128.0 - 1;
+    const freqValue = freqData[Math.floor((i / barCount) * freqData.length)] / 255;
     const barHeight = Math.max(2, (Math.abs(value) * h * 0.8 + freqValue * h * 0.4));
-
     const x = i * (barWidth + gap);
 
-    // Gradient color based on frequency band
-    const hue = 270 - (i / barCount) * 40; // purple to blue-purple
+    const hue = 270 - (i / barCount) * 40;
     const saturation = 70 + freqValue * 30;
     const lightness = 40 + freqValue * 30;
     const alpha = 0.4 + freqValue * 0.6;
 
-    // Draw mirrored bars
     const gradient = waveCtx.createLinearGradient(x, centerY - barHeight / 2, x, centerY + barHeight / 2);
     gradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness + 20}%, ${alpha * 0.3})`);
     gradient.addColorStop(0.3, `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`);
@@ -200,7 +267,6 @@ function drawWaveform(bands) {
 
     waveCtx.fillStyle = gradient;
 
-    // Rounded bar
     const radius = barWidth / 2;
     const barTop = centerY - barHeight / 2;
     waveCtx.beginPath();
@@ -215,7 +281,6 @@ function drawWaveform(bands) {
     waveCtx.quadraticCurveTo(x, barTop, x + radius, barTop);
     waveCtx.fill();
 
-    // Glow effect on high-energy bars
     if (freqValue > 0.6) {
       waveCtx.shadowColor = `hsla(${hue}, 100%, 60%, 0.5)`;
       waveCtx.shadowBlur = 8;
@@ -224,7 +289,6 @@ function drawWaveform(bands) {
     }
   }
 
-  // Center line glow
   waveCtx.strokeStyle = `rgba(108, 13, 242, ${0.1 + bands.overall * 0.2})`;
   waveCtx.lineWidth = 1;
   waveCtx.beginPath();
@@ -244,7 +308,6 @@ function drawIdleWaveform(w, h) {
     const x = i * (barWidth + gap);
     const wave = Math.sin(time * 2 + i * 0.15) * 0.3 + 0.3;
     const barHeight = Math.max(2, wave * h * 0.3);
-
     const alpha = 0.2 + wave * 0.3;
     waveCtx.fillStyle = `rgba(108, 13, 242, ${alpha})`;
 
@@ -265,274 +328,152 @@ function drawIdleWaveform(w, h) {
 }
 
 /* ═══════════════════════════════════════════
-   PARALLAX SYSTEM — MOUSE/GYROSCOPE
+   PARALLAX SYSTEM
    ═══════════════════════════════════════════ */
 
-let mouseX = 0, mouseY = 0;
 let targetParallaxX = 0, targetParallaxY = 0;
 let currentParallaxX = 0, currentParallaxY = 0;
 
 document.addEventListener('mousemove', (e) => {
   const cx = window.innerWidth / 2;
   const cy = window.innerHeight / 2;
-  targetParallaxX = ((e.clientX - cx) / cx) * 15; // max 15px
-  targetParallaxY = ((e.clientY - cy) / cy) * 10; // max 10px
+  targetParallaxX = ((e.clientX - cx) / cx) * 15;
+  targetParallaxY = ((e.clientY - cy) / cy) * 10;
 });
 
-// Gyroscope support for mobile
 if (window.DeviceOrientationEvent) {
   window.addEventListener('deviceorientation', (e) => {
     if (e.gamma !== null && e.beta !== null) {
-      targetParallaxX = (e.gamma / 45) * 15; // tilt left-right
-      targetParallaxY = ((e.beta - 45) / 45) * 10; // tilt forward-back
+      targetParallaxX = (e.gamma / 45) * 15;
+      targetParallaxY = ((e.beta - 45) / 45) * 10;
     }
   });
 }
 
 function updateParallax() {
-  // Smooth interpolation (lerp)
   currentParallaxX += (targetParallaxX - currentParallaxX) * 0.08;
   currentParallaxY += (targetParallaxY - currentParallaxY) * 0.08;
 
   document.documentElement.style.setProperty('--parallax-x', `${currentParallaxX}px`);
   document.documentElement.style.setProperty('--parallax-y', `${currentParallaxY}px`);
 
-  // Background layer gets amplified parallax via CSS calc
   if (bgImage) {
     bgImage.style.transform = `scale(1.05) translate3d(${currentParallaxX * 3}px, ${currentParallaxY * 3}px, 0)`;
   }
 }
 
 /* ═══════════════════════════════════════════
-   GLITCH TRANSITION ENGINE
+   BEAT DETECTION
    ═══════════════════════════════════════════ */
 
-function triggerGlitchTransition() {
-  if (!glitchOverlay) return;
+function detectBeat(energy) {
+  energyHistory.push(energy);
+  if (energyHistory.length > ENERGY_HISTORY_SIZE) energyHistory.shift();
+  if (energyHistory.length < 10) return false;
 
-  // Activate overlay
-  glitchOverlay.classList.remove('active');
-  void glitchOverlay.offsetWidth; // force reflow
-  glitchOverlay.classList.add('active');
+  const avg = energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length;
+  const now = performance.now();
 
-  // Glitch the title text
-  if (heroTitle) {
-    heroTitle.classList.add('glitch-text-active');
+  if (energy > avg * 1.3 && energy > 0.6 && (now - lastBeatTime) > beatCooldown) {
+    lastBeatTime = now;
+    beatTimes.push(now);
+    if (beatTimes.length > 20) beatTimes.shift();
+
+    if (beatTimes.length > 3) {
+      const intervals = [];
+      for (let i = 1; i < beatTimes.length; i++) intervals.push(beatTimes[i] - beatTimes[i - 1]);
+      const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      currentBPM = Math.max(60, Math.min(200, Math.round(60000 / avgInterval)));
+    }
+    return true;
   }
-
-  // Brief screen flash
-  document.body.style.filter = 'brightness(1.3) saturate(1.5)';
-  setTimeout(() => {
-    document.body.style.filter = '';
-  }, 50);
-
-  // Clean up after animation
-  setTimeout(() => {
-    glitchOverlay.classList.remove('active');
-    if (heroTitle) heroTitle.classList.remove('glitch-text-active');
-  }, 600);
+  return false;
 }
 
 /* ═══════════════════════════════════════════
    MASTER ANIMATION LOOP — 60FPS
    ═══════════════════════════════════════════ */
 
+let animationFrameId = null;
+let dataUpdateCounter = 0;
+
 function animationLoop() {
   animationFrameId = requestAnimationFrame(animationLoop);
-
-  // Always update parallax
   updateParallax();
 
-  if (!isPlaying || !audioConnected) return;
+  if (!radio.isPlaying) return;
 
-  // Get frequency data
-  const bands = getFrequencyBands();
+  const bands = radio.getFrequencyBands();
   const isBeat = detectBeat(bands.low);
 
-  // ── Update CSS custom properties (GPU-friendly) ──
-  const glowIntensity = Math.min(1, bands.overall * 2);
   const root = document.documentElement.style;
+  const glowIntensity = Math.min(1, bands.overall * 2);
   root.setProperty('--glow-intensity', glowIntensity.toFixed(3));
   root.setProperty('--freq-low', bands.low.toFixed(3));
   root.setProperty('--freq-mid', bands.mid.toFixed(3));
   root.setProperty('--freq-high', bands.high.toFixed(3));
 
-  // ── Beat scale pulse ──
   if (isBeat) {
     root.setProperty('--beat-scale', '1.03');
     setTimeout(() => root.setProperty('--beat-scale', '1'), 100);
   }
 
-  // ── Draw reactive waveform ──
   drawWaveform(bands);
-
-  // ── Update decorative data displays ──
   updateDecorativeData(bands);
 }
 
-// Start the master loop immediately
 animationFrameId = requestAnimationFrame(animationLoop);
-
-/* ═══════════════════════════════════════════
-   DECORATIVE DATA DISPLAYS
-   ═══════════════════════════════════════════ */
-
-let dataUpdateCounter = 0;
 
 function updateDecorativeData(bands) {
   dataUpdateCounter++;
-  if (dataUpdateCounter % 10 !== 0) return; // Update every ~10 frames
+  if (dataUpdateCounter % 10 !== 0) return;
 
   const freqEl = document.getElementById('freqVal');
   const bpmEl = document.getElementById('bpmVal');
-
-  if (freqEl) {
-    const freq = Math.round(200 + bands.mid * 800);
-    freqEl.textContent = freq;
-  }
-
-  if (bpmEl) {
-    bpmEl.textContent = currentBPM;
-  }
+  if (freqEl) freqEl.textContent = Math.round(200 + bands.mid * 800);
+  if (bpmEl) bpmEl.textContent = currentBPM;
 }
 
 /* ═══════════════════════════════════════════
-   PLAYBACK CONTROLS
+   TIMER
    ═══════════════════════════════════════════ */
 
-function togglePlayback() {
-  if (isPlaying) {
-    stopPlayback();
-  } else {
-    startPlayback();
-  }
-}
-
-function startPlayback() {
-  // Initialize audio analyzer on first play
-  initAudioAnalyzer();
-
-  if (audioContext && audioContext.state === 'suspended') {
-    audioContext.resume();
-  }
-
-  audio.play().catch(() => {
-    showToast('⚠ Audio blocked — click again');
-    return;
-  });
-
-  isPlaying = true;
-  document.body.classList.add('is-playing');
-
-  // Trigger glitch transition on play
-  triggerGlitchTransition();
-
-  // Update play button
-  playIcon.textContent = 'pause';
-  playIcon.style.marginLeft = '0';
-  playLabel.textContent = 'STREAMING';
-
-  // Switch neon glow to reactive mode
-  const glowEl = playWrapper.querySelector('.neon-pulse, .neon-pulse-active');
-  if (glowEl) {
-    glowEl.classList.remove('neon-pulse');
-    glowEl.classList.add('neon-pulse-active');
-  }
-
-  // Show EQ bars
-  eqBars.style.opacity = '1';
-
-  // Show waveform
-  waveformContainer.style.opacity = '1';
-  resizeWaveformCanvas();
-
-  // Now playing label
-  nowPlayingLabel.textContent = 'Now Playing';
-  nowPlayingLabel.classList.remove('text-slate-500');
-  nowPlayingLabel.classList.add('text-primary');
-
-  // Start timer
-  startTimer();
-
-  // Increment listener count
-  animateListenerCount(4203, 4204);
-
-  showToast('📡 Signal locked — streaming live');
-}
-
-function stopPlayback() {
-  audio.pause();
-  isPlaying = false;
-  document.body.classList.remove('is-playing');
-
-  // Trigger glitch on stop
-  triggerGlitchTransition();
-
-  playIcon.textContent = 'play_arrow';
-  playIcon.style.marginLeft = '8px';
-  playLabel.textContent = 'INITIATE';
-
-  const glowEl = playWrapper.querySelector('.neon-pulse, .neon-pulse-active');
-  if (glowEl) {
-    glowEl.classList.remove('neon-pulse-active');
-    glowEl.classList.add('neon-pulse');
-  }
-
-  eqBars.style.opacity = '0';
-  waveformContainer.style.opacity = '0';
-
-  nowPlayingLabel.textContent = 'Paused';
-  nowPlayingLabel.classList.remove('text-primary');
-  nowPlayingLabel.classList.add('text-slate-500');
-
-  clearInterval(timerInterval);
-  animateListenerCount(4204, 4203);
-
-  // Reset CSS vars
-  const root = document.documentElement.style;
-  root.setProperty('--glow-intensity', '0');
-  root.setProperty('--beat-scale', '1');
-  root.setProperty('--freq-low', '0');
-  root.setProperty('--freq-mid', '0');
-  root.setProperty('--freq-high', '0');
-}
-
-// ─── Timer ───
 function startTimer() {
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     elapsedSeconds++;
     const m = Math.floor(elapsedSeconds / 60);
     const s = elapsedSeconds % 60;
-    trackTime.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    if (trackTime) trackTime.textContent = `${m}:${s.toString().padStart(2, '0')}`;
   }, 1000);
 }
 
-// ─── Listener Count Animation ───
+/* ═══════════════════════════════════════════
+   LISTENER COUNT ANIMATION
+   ═══════════════════════════════════════════ */
+
 function animateListenerCount(from, to) {
   const el = document.getElementById('listenerCount');
   const duration = 800;
   const start = performance.now();
   function update(time) {
     const p = Math.min((time - start) / duration, 1);
-    const val = Math.round(from + (to - from) * p);
-    el.textContent = val.toLocaleString();
+    el.textContent = Math.round(from + (to - from) * p).toLocaleString();
     if (p < 1) requestAnimationFrame(update);
   }
   requestAnimationFrame(update);
 }
 
 /* ═══════════════════════════════════════════
-   CONTROLS
+   CONTROLS (mute, favorite, share)
    ═══════════════════════════════════════════ */
 
 function toggleMute() {
-  isMuted = !isMuted;
-  audio.muted = isMuted;
+  const muted = radio.toggleMute();
   const btn = document.getElementById('volBtn');
   const icon = btn.querySelector('.material-symbols-outlined');
-  icon.textContent = isMuted ? 'volume_off' : 'volume_up';
-  showToast(isMuted ? '🔇 Muted' : '🔊 Unmuted');
+  icon.textContent = muted ? 'volume_off' : 'volume_up';
+  showToast(muted ? '🔇 Muted' : '🔊 Unmuted');
 }
 
 function toggleFavorite(btn) {
@@ -565,15 +506,13 @@ function shareStation() {
    ═══════════════════════════════════════════ */
 
 function openAboutOverlay() {
-  const overlay = document.getElementById('aboutOverlay');
-  overlay.classList.add('active');
+  document.getElementById('aboutOverlay').classList.add('active');
   aboutOpen = true;
   document.body.style.overflow = 'hidden';
 }
 
 function closeAboutOverlay() {
-  const overlay = document.getElementById('aboutOverlay');
-  overlay.classList.remove('active');
+  document.getElementById('aboutOverlay').classList.remove('active');
   aboutOpen = false;
   document.body.style.overflow = '';
 }
@@ -607,7 +546,7 @@ function showToast(msg) {
 }
 
 /* ═══════════════════════════════════════════
-   RIPPLE EFFECT ON BUTTONS
+   RIPPLE EFFECT
    ═══════════════════════════════════════════ */
 
 document.querySelectorAll('.ripple-btn').forEach(btn => {
@@ -625,8 +564,7 @@ document.querySelectorAll('.ripple-btn').forEach(btn => {
 });
 
 /* ═══════════════════════════════════════════
-   PARTICLE BACKGROUND — ENHANCED
-   Now reacts to audio when playing
+   PARTICLE BACKGROUND
    ═══════════════════════════════════════════ */
 
 (function initParticles() {
@@ -655,23 +593,20 @@ document.querySelectorAll('.ripple-btn').forEach(btn => {
       baseDy: (Math.random() - 0.5) * 0.3,
       alpha: Math.random() * 0.5 + 0.1,
       baseAlpha: Math.random() * 0.5 + 0.1,
-      hue: 270 + Math.random() * 40 - 20 // purple range
+      hue: 270 + Math.random() * 40 - 20
     });
   }
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const glowIntensity = isPlaying
+    const glowIntensity = radio.isPlaying
       ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--glow-intensity') || '0')
       : 0;
 
     particles.forEach((p, i) => {
-      // React to audio
-      if (isPlaying && glowIntensity > 0) {
+      if (radio.isPlaying && glowIntensity > 0) {
         p.r = p.baseR + glowIntensity * 3;
         p.alpha = Math.min(1, p.baseAlpha + glowIntensity * 0.4);
-        // Speed up particles based on beat intensity
         const speedMult = 1 + glowIntensity * 2;
         p.dx = p.baseDx * speedMult;
         p.dy = p.baseDy * speedMult;
@@ -687,7 +622,6 @@ document.querySelectorAll('.ripple-btn').forEach(btn => {
       ctx.fillStyle = `hsla(${p.hue + glowIntensity * 30}, 80%, 60%, ${p.alpha})`;
       ctx.fill();
 
-      // Glow for large particles during beat
       if (p.r > 2 && glowIntensity > 0.3) {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r * 2, 0, Math.PI * 2);
@@ -700,7 +634,6 @@ document.querySelectorAll('.ripple-btn').forEach(btn => {
       if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
       if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
 
-      // Draw connections between nearby particles
       for (let j = i + 1; j < particles.length; j++) {
         const p2 = particles[j];
         const dist = Math.hypot(p.x - p2.x, p.y - p2.y);
@@ -715,14 +648,13 @@ document.querySelectorAll('.ripple-btn').forEach(btn => {
         }
       }
     });
-
     requestAnimationFrame(draw);
   }
   draw();
 })();
 
 /* ═══════════════════════════════════════════
-   LATENCY TICKER (cosmetic)
+   COSMETIC TICKER
    ═══════════════════════════════════════════ */
 
 setInterval(() => {
@@ -741,6 +673,10 @@ document.addEventListener('keydown', (e) => {
     if (schedulePanelOpen) toggleSchedulePanel();
   }
   if (e.code === 'KeyM') toggleMute();
-  // Glitch transition on G key (for demo/testing)
-  if (e.code === 'KeyG') triggerGlitchTransition();
+  if (e.code === 'ArrowRight') skipNext();
+  if (e.code === 'ArrowLeft') skipPrev();
+  // Channel quick-switch: 1, 2, 3
+  if (e.code === 'Digit1') switchChannel('hiphop');
+  if (e.code === 'Digit2') switchChannel('amapiano');
+  if (e.code === 'Digit3') switchChannel('industrial');
 });
