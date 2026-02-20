@@ -4,14 +4,14 @@
    ═══════════════════════════════════════════ */
 
 :root {
-  --primary: #6c0df2;
-  --primary-rgb: 108, 13, 242;
-  --accent: #a855f7;
-  --accent-rgb: 168, 85, 247;
-  --neon-blue: #00d4ff;
-  --neon-blue-rgb: 0, 212, 255;
-  --bg-dark: #050505;
-  --surface-dark: #141118;
+  --primary: #CCFF00;
+  --primary-rgb: 204, 255, 0;
+  --accent: #FF4500;
+  --accent-rgb: 255, 69, 0;
+  --neon-blue: #CCFF00;
+  --neon-blue-rgb: 204, 255, 0;
+  --bg-dark: #0A0A0A;
+  --surface-dark: #111111;
 
   /* Dynamic glow intensity — driven by JS audio analysis */
   --glow-intensity: 0;
@@ -47,7 +47,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2f2839;
+  background: #1a1a1a;
   border-radius: 4px;
 }
 

@@ -45,37 +45,23 @@ const radio = new RadioEngine({
   bpmRange: { min: 110, max: 125 }
 });
 
-// ─── Register Genre Pools (blended into one seamless flow) ───
-
-radio.registerGenre('hiphop', {
-  name: 'Hip-Hop',
-  genre: 'Hip-Hop',
-  icon: 'mic',
-  color: '#f59e0b',
-  description: 'Boom-bap drums & deep 808 bass',
-  stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
-  tracks: [
-    { title: 'Midnight Cipher', artist: 'Neural Beats', duration: '4:22', bpm: 115, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Dark Alley Flow', artist: 'AI Lyricist', duration: '3:45', bpm: 118, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Code Switch', artist: 'Binary Bars', duration: '4:01', bpm: 112, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Bass Cathedral', artist: 'Sub Prophet', duration: '5:10', bpm: 120, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Ghost Protocol', artist: 'The Architect', duration: '3:58', bpm: 110, energy: 'low', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
-  ]
-});
+// ─── Register Genre Pools — 2026 SA Vanguard Artists ───
 
 radio.registerGenre('amapiano', {
   name: 'Amapiano',
   genre: 'Amapiano',
   icon: 'piano',
-  color: '#10b981',
-  description: 'Log drums, shakers & lush keys',
+  color: '#CCFF00',
+  description: 'Log drums, shakers & high-energy yanos',
   stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
   tracks: [
-    { title: 'Johannesburg Sunrise', artist: 'Synth Tribe', duration: '5:30', bpm: 113, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Shaker Protocol', artist: 'AMA.AI', duration: '4:15', bpm: 116, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Log Drum Machine', artist: 'Deep Pulse', duration: '6:02', bpm: 115, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Soweto Moon', artist: 'Kabza Ghost', duration: '4:45', bpm: 112, energy: 'low', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Bassline Religion', artist: 'Yano Synth', duration: '5:20', bpm: 118, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
+    { title: 'Tshwala Bam', artist: 'TitoM & Yuppe', duration: '4:32', bpm: 115, energy: 0.92, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Bass Drop Protocol', artist: 'LeeMcKrazy', duration: '3:55', bpm: 116, energy: 0.88, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Funk 55', artist: 'Shakes & Les', duration: '4:10', bpm: 114, energy: 0.85, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Mshini Wam', artist: 'Zee Nxumalo', duration: '5:02', bpm: 118, energy: 0.90, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Khuza Gogo', artist: 'DBN Gogo', duration: '4:45', bpm: 113, energy: 0.78, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Uthando', artist: 'TitoM', duration: '5:20', bpm: 112, energy: 0.65, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'S\'bonga Amapiano', artist: 'Yuppe', duration: '3:48', bpm: 117, energy: 0.95, url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
   ]
 });
 
@@ -83,15 +69,32 @@ radio.registerGenre('afrotech', {
   name: 'AfroTech',
   genre: 'AfroTech',
   icon: 'sensors',
-  color: '#8b5cf6',
+  color: '#FF4500',
   description: 'Tribal percussion meets electronic synthesis',
   stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
   tracks: [
-    { title: 'Tribal Circuit', artist: 'Voltage Drum', duration: '5:45', bpm: 122, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Motherboard Rhythm', artist: 'Afro Pulse', duration: '6:10', bpm: 120, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Savanna Frequency', artist: 'Signal Griot', duration: '4:33', bpm: 118, energy: 'mid', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Djembe Algorithm', artist: 'Coded Roots', duration: '5:15', bpm: 124, energy: 'high', url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
-    { title: 'Night Market Bass', artist: 'Lagos Digital', duration: '4:50', bpm: 115, energy: 'low', url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
+    { title: 'Indlela', artist: 'Shimza', duration: '6:15', bpm: 122, energy: 0.70, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Africanism', artist: 'Da Capo', duration: '5:45', bpm: 120, energy: 0.55, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Cala', artist: 'Atmos Blaq', duration: '5:30', bpm: 121, energy: 0.60, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Tribal Circuit', artist: 'Shimza', duration: '6:40', bpm: 123, energy: 0.68, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Motherboard', artist: 'Da Capo', duration: '5:55', bpm: 119, energy: 0.45, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Izintaba', artist: 'Atmos Blaq', duration: '6:05', bpm: 120, energy: 0.52, url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
+  ]
+});
+
+radio.registerGenre('piano', {
+  name: 'Private School',
+  genre: 'Private School Piano',
+  icon: 'music_note',
+  color: '#CCFF00',
+  description: 'Deep keys, minimal grooves, soulful textures',
+  stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
+  tracks: [
+    { title: 'Abalele', artist: 'Kelvin Momo', duration: '5:45', bpm: 113, energy: 0.35, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Imnandi Lento', artist: 'Shebeshxt', duration: '4:20', bpm: 115, energy: 0.48, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Mina Nawe', artist: 'Kelvin Momo', duration: '6:10', bpm: 112, energy: 0.28, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Siyabakhumbula', artist: 'Kelvin Momo', duration: '5:50', bpm: 110, energy: 0.22, url: 'https://stream.zeno.fm/0r0xa792kwzuv' },
+    { title: 'Sebentini', artist: 'Shebeshxt', duration: '4:40', bpm: 116, energy: 0.42, url: 'https://stream.zeno.fm/0r0xa792kwzuv' }
   ]
 });
 
@@ -132,15 +135,6 @@ radio.onTrackChange = (track) => {
   if (trackTitleEl) trackTitleEl.textContent = track.title || 'Unknown';
   if (trackArtistEl) trackArtistEl.textContent = track.artist || 'Amaradio';
   if (trackDurationEl) trackDurationEl.textContent = track.duration || '∞';
-
-  // Pre-generate DJ transition for the NEXT track in queue
-  if (radio.isTrackMode && radio.queue.length > 0) {
-    const nextIndex = (radio.queueIndex + 1) % radio.queue.length;
-    const nextTrack = radio.queue[nextIndex];
-    if (nextTrack) {
-      djController.prepareTransition(nextTrack, radio.energyPhase);
-    }
-  }
 };
 
 radio.onStateChange = (state) => {
@@ -211,9 +205,13 @@ radio.onError = (err) => {
   }
 };
 
+// DJ pre-buffer at 80% track duration — zero dead air
+radio.onPreBuffer = (data) => {
+  djController.prepareTransition(data.nextTrack, data.energyPhase);
+};
+
 // DJ speaks during crossfade transitions
 radio.onEnergyPhaseChange = (data) => {
-  // Execute the pre-prepared DJ transition
   updateDJIndicator(true);
   djController.executeTransition();
   setTimeout(() => updateDJIndicator(false), 5000);
@@ -734,9 +732,9 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'KeyD') toggleDJ();
   if (e.code === 'ArrowRight') skipNext();
   if (e.code === 'ArrowLeft') skipPrev();
-  // Genre filter: 0=all blend, 1=hip-hop, 2=amapiano, 3=afrotech
+  // Genre filter: 0=blend, 1=amapiano, 2=afrotech, 3=private school
   if (e.code === 'Digit0') switchChannel('all');
-  if (e.code === 'Digit1') switchChannel('hiphop');
-  if (e.code === 'Digit2') switchChannel('amapiano');
-  if (e.code === 'Digit3') switchChannel('afrotech');
+  if (e.code === 'Digit1') switchChannel('amapiano');
+  if (e.code === 'Digit2') switchChannel('afrotech');
+  if (e.code === 'Digit3') switchChannel('piano');
 });

@@ -67,6 +67,9 @@ class RadioEngine {
             cooldown: { tracks: 1, nextPhase: 'build' }
         };
 
+        // ─── 80% Pre-Buffer Flag ───
+        this._preBufferFired = false;
+
         // ─── Stream fallback ───
         this.fallbackStream = null;
 
@@ -77,6 +80,7 @@ class RadioEngine {
         this.onTimeUpdate = null;
         this.onError = null;
         this.onEnergyPhaseChange = null;
+        this.onPreBuffer = null;  // fired at 80% track duration
 
         // ─── Initialize ───
         this._createAudioElements();
@@ -176,21 +180,37 @@ class RadioEngine {
 
             audio.addEventListener('timeupdate', () => {
                 if (key === this.activePlayer) {
-                    this._fireEvent('timeUpdate', {
-                        currentTime: audio.currentTime,
-                        duration: audio.duration || 0
-                    });
+                    const currentTime = audio.currentTime;
+                    const duration = audio.duration || 0;
 
-                    // Groove-aware crossfade trigger
-                    if (this.isTrackMode && audio.duration && !this.isCrossfading) {
-                        const remaining = audio.duration - audio.currentTime;
-                        if (remaining <= this.crossfadeDuration + 0.5 && remaining > 0) {
-                            this._startCrossfadeToNext();
+                    this._fireEvent('timeUpdate', { currentTime, duration });
+
+                    if (this.isTrackMode && duration > 0) {
+                        const progress = currentTime / duration;
+
+                        // ─── 80% PRE-BUFFER: queue DJ voice before crossfade ───
+                        if (progress >= 0.80 && !this._preBufferFired && !this.isCrossfading) {
+                            this._preBufferFired = true;
+                            const nextIndex = (this.queueIndex + 1) % this.queue.length;
+                            const nextTrack = this.queue[nextIndex];
+                            if (nextTrack) {
+                                this._fireEvent('preBuffer', {
+                                    nextTrack, energyPhase: this.energyPhase,
+                                    remainingSeconds: duration - currentTime
+                                });
+                            }
+                        }
+
+                        // ─── Crossfade trigger (near end) ───
+                        if (!this.isCrossfading) {
+                            const remaining = duration - currentTime;
+                            if (remaining <= this.crossfadeDuration + 0.5 && remaining > 0) {
+                                this._startCrossfadeToNext();
+                            }
                         }
                     }
                 }
             });
-
             audio.addEventListener('error', (e) => {
                 console.warn(`[RadioEngine] Player ${key} error:`, e);
                 this._fireEvent('error', {
@@ -230,7 +250,7 @@ class RadioEngine {
             genreName: genre.name,
             genreColor: genre.color,
             genreIcon: genre.icon,
-            energy: t.energy || 'mid',  // 'low' | 'mid' | 'high'
+            energy: typeof t.energy === 'number' ? t.energy : 0.5,  // numeric 0.0–1.0
             bpm: t.bpm || 118           // default to middle of 110-125 range
         }));
 
@@ -282,11 +302,11 @@ class RadioEngine {
             pool = [...this.masterLibrary];
         }
 
-        // Sort tracks by energy level into buckets
+        // Sort tracks by numeric energy into buckets
         const buckets = {
-            low: pool.filter(t => t.energy === 'low'),
-            mid: pool.filter(t => t.energy === 'mid'),
-            high: pool.filter(t => t.energy === 'high')
+            low: pool.filter(t => t.energy < 0.4),
+            mid: pool.filter(t => t.energy >= 0.4 && t.energy <= 0.8),
+            high: pool.filter(t => t.energy > 0.8)
         };
 
         // Build the queue following the energy arc
@@ -753,6 +773,9 @@ class RadioEngine {
     }
 
     _updateCurrentTrack() {
+        // Reset pre-buffer flag for the new track
+        this._preBufferFired = false;
+
         if (this.isTrackMode && this.queue.length > 0 && this.queueIndex >= 0) {
             const track = this.queue[this.queueIndex];
             this.currentTrack = {
