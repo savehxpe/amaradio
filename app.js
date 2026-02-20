@@ -99,6 +99,29 @@ radio.registerGenre('afrotech', {
 radio.setFilter('all');
 
 /* ═══════════════════════════════════════════
+   DJ PERSONA SETUP
+   ═══════════════════════════════════════════ */
+
+const djPersona = new Persona('Amaradio', 'default', 'underground AI radio host, calm, cool, futuristic');
+djPersona.pitch = 1.0;
+djPersona.rate = 0.92;
+
+const djScriptGen = new ScriptGenerator(djPersona);
+const djVoiceSynth = new VoiceSynthesizer();
+const djInjector = new AudioInjector(radio);
+const djController = new StreamController(djScriptGen, djVoiceSynth, djInjector);
+
+// DJ indicator element
+const djIndicator = document.getElementById('djIndicator');
+const djToggleBtn = document.getElementById('djToggleBtn');
+
+function updateDJIndicator(speaking) {
+  if (djIndicator) {
+    djIndicator.classList.toggle('dj-speaking', speaking);
+  }
+}
+
+/* ═══════════════════════════════════════════
    ENGINE EVENT HANDLERS
    ═══════════════════════════════════════════ */
 
@@ -109,6 +132,15 @@ radio.onTrackChange = (track) => {
   if (trackTitleEl) trackTitleEl.textContent = track.title || 'Unknown';
   if (trackArtistEl) trackArtistEl.textContent = track.artist || 'Amaradio';
   if (trackDurationEl) trackDurationEl.textContent = track.duration || '∞';
+
+  // Pre-generate DJ transition for the NEXT track in queue
+  if (radio.isTrackMode && radio.queue.length > 0) {
+    const nextIndex = (radio.queueIndex + 1) % radio.queue.length;
+    const nextTrack = radio.queue[nextIndex];
+    if (nextTrack) {
+      djController.prepareTransition(nextTrack, radio.energyPhase);
+    }
+  }
 };
 
 radio.onStateChange = (state) => {
@@ -179,6 +211,14 @@ radio.onError = (err) => {
   }
 };
 
+// DJ speaks during crossfade transitions
+radio.onEnergyPhaseChange = (data) => {
+  // Execute the pre-prepared DJ transition
+  updateDJIndicator(true);
+  djController.executeTransition();
+  setTimeout(() => updateDJIndicator(false), 5000);
+};
+
 /* ═══════════════════════════════════════════
    PLAYBACK CONTROLS
    ═══════════════════════════════════════════ */
@@ -187,6 +227,17 @@ async function togglePlayback() {
   const result = await radio.togglePlay();
   if (result === true) {
     showToast('📡 Signal locked — streaming live');
+    // DJ intro on first play (delayed so music starts first)
+    setTimeout(() => djController.speakIntro(), 2000);
+  }
+}
+
+function toggleDJ() {
+  const enabled = djController.toggle();
+  showToast(enabled ? '🎙️ DJ NOVA is live' : '🔇 DJ NOVA muted');
+  if (djToggleBtn) {
+    djToggleBtn.classList.toggle('text-primary', enabled);
+    djToggleBtn.classList.toggle('text-slate-400', !enabled);
   }
 }
 
@@ -680,6 +731,7 @@ document.addEventListener('keydown', (e) => {
     if (schedulePanelOpen) toggleSchedulePanel();
   }
   if (e.code === 'KeyM') toggleMute();
+  if (e.code === 'KeyD') toggleDJ();
   if (e.code === 'ArrowRight') skipNext();
   if (e.code === 'ArrowLeft') skipPrev();
   // Genre filter: 0=all blend, 1=hip-hop, 2=amapiano, 3=afrotech

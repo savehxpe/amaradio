@@ -797,7 +797,36 @@ body.is-playing #playIcon {
 }
 
 /* ═══════════════════════════════════════════
-   16. REDUCED MOTION SUPPORT
+   16. DJ PERSONA INDICATOR
+   ═══════════════════════════════════════════ */
+
+#djIndicator {
+  opacity: 0.5;
+}
+
+#djIndicator.dj-speaking {
+  opacity: 1;
+}
+
+#djIndicator.dj-speaking .material-symbols-outlined {
+  animation: djPulse 0.6s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 8px rgba(var(--primary-rgb), 0.9));
+}
+
+@keyframes djPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   17. REDUCED MOTION SUPPORT
    ═══════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
