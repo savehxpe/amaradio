@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Amaradio — Underground AI Radio Network</title>
+    <meta name="description"
+        content="Amaradio: An immersive underground AI radio experience. Tune in to endless streams of deep techno, ambient, and experimental frequencies." />
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6c0df2",
+                        "background-light": "#f7f5f8",
+                        "background-dark": "#050505",
+                        "surface-dark": "#141118",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "sans": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body
+    class="font-display min-h-screen overflow-x-hidden selection:bg-primary selection:text-white bg-background-dark text-slate-100">
+
+    <!-- Background Layer -->
+    <div class="fixed inset-0 z-0">
+        <div id="bgImage" class="absolute inset-0 bg-cover bg-center opacity-40 blur-sm scale-105 bg-motion"
+            style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB9SHB9EdWwaaOxzKdocS14GHyFYRJ6w2d0scDk4kHrDJfVI5mk9-P4isGeA3T1bsAIDHyIH7GrZFT2lw82GH-o7EVHWSrTmldd8qbPutLNCOYuaREFQVIl69JeEvOlJBF3npyVKfRg-xU2vkdtID4byVniKK2PRK5JgbxOsPqSX9KpQwKTgxz7zlR-u9A1k-0oZUp0XyGun4ZC0h_WGHUgIkDEsPyVNAU4xYTvZ1VHgGe_uENxzmz6Dw8XRy5c4hVu6GgHD0qdTrMe');">
+        </div>
+        <div
+            class="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/80 to-background-dark/40">
+        </div>
+        <div class="absolute inset-0 bg-grid opacity-20 pointer-events-none"></div>
+        <!-- Floating particles -->
+        <canvas id="particleCanvas" class="absolute inset-0 pointer-events-none"></canvas>
+    </div>
+
+    <!-- Main Content Container -->
+    <div class="relative z-10 flex flex-col min-h-screen">
+
+        <!-- Navbar -->
+        <header id="navbar"
+            class="w-full border-b border-white/5 bg-background-dark/30 backdrop-blur-md sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <div class="flex items-center gap-3 group cursor-pointer" onclick="scrollToSection('hero')">
+                    <div class="relative size-8 flex items-center justify-center">
+                        <div class="absolute inset-0 bg-primary/20 rounded-full animate-ping opacity-75"></div>
+                        <span
+                            class="material-symbols-outlined text-primary text-3xl drop-shadow-[0_0_8px_rgba(108,13,242,0.8)]">radio</span>
+                    </div>
+                    <span
+                        class="font-bold text-xl tracking-tight text-white group-hover:text-primary transition-colors duration-300">AMARADIO</span>
+                </div>
+                <nav class="hidden md:flex items-center gap-10">
+                    <a class="nav-link text-sm font-medium text-slate-300 hover:text-primary tracking-widest transition-colors relative group"
+                        href="#" onclick="event.preventDefault();scrollToSection('hero')">
+                        LIVE <span class="nav-underline"></span>
+                    </a>
+                    <a class="nav-link text-sm font-medium text-slate-300 hover:text-primary tracking-widest transition-colors relative group"
+                        href="#" onclick="event.preventDefault();openAboutOverlay()">
+                        ABOUT <span class="nav-underline"></span>
+                    </a>
+                    <a class="nav-link text-sm font-medium text-slate-300 hover:text-primary tracking-widest transition-colors relative group"
+                        href="#" onclick="event.preventDefault();toggleSchedulePanel()">
+                        SCHEDULE <span class="nav-underline"></span>
+                    </a>
+                </nav>
+                <div class="flex items-center gap-6">
+                    <button
+                        class="hidden md:flex items-center gap-2 px-5 py-2 rounded-full border border-white/10 hover:border-primary/50 bg-white/5 hover:bg-primary/10 transition-all duration-300 group ripple-btn">
+                        <span class="text-xs font-bold tracking-wider text-white group-hover:text-primary">LOGIN</span>
+                        <span
+                            class="material-symbols-outlined text-[18px] text-white/70 group-hover:text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    </button>
+                    <button id="menuToggle" class="md:hidden text-white hover:text-primary"
+                        onclick="toggleSchedulePanel()">
+                        <span class="material-symbols-outlined text-3xl">menu</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Hero Section -->
+        <main id="hero"
+            class="section-fade flex-grow flex flex-col items-center justify-center px-4 py-12 relative w-full max-w-7xl mx-auto">
+            <!-- Play Core -->
+            <div class="relative group cursor-pointer mb-12" id="playButtonWrapper">
+                <div
+                    class="absolute -inset-8 bg-primary/20 rounded-full blur-2xl group-hover:bg-primary/30 transition-all duration-500 neon-pulse">
+                </div>
+                <div
+                    class="absolute -inset-1 bg-gradient-to-br from-primary via-[#a855f7] to-blue-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200">
+                </div>
+                <button id="playButton"
+                    class="relative flex flex-col items-center justify-center size-48 md:size-64 rounded-full bg-background-dark border border-white/10 shadow-2xl transition-transform duration-300 group-hover:scale-105 active:scale-95 overflow-hidden ripple-btn"
+                    onclick="togglePlayback()">
+                    <div
+                        class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20">
+                    </div>
+                    <span id="playIcon"
+                        class="material-symbols-outlined text-6xl md:text-8xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] z-10 ml-2 group-hover:text-primary transition-colors duration-300"
+                        style="font-variation-settings: 'FILL' 1, 'wght' 700;">play_arrow</span>
+                    <span id="playLabel"
+                        class="absolute bottom-8 md:bottom-12 text-[10px] md:text-xs tracking-[0.2em] text-white/40 group-hover:text-primary/80 transition-colors">INITIATE</span>
+                </button>
+            </div>
+
+            <!-- Waveform Visualizer (hidden until playing) -->
+            <div id="waveformContainer"
+                class="w-full max-w-md h-16 mb-8 opacity-0 transition-opacity duration-500 flex items-center justify-center gap-[3px]">
+            </div>
+
+            <!-- Typography Lockup -->
+            <div class="text-center space-y-4 max-w-4xl mx-auto z-10">
+                <h1
+                    class="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 glitch-hover cursor-default select-none">
+                    AMARADIO</h1>
+                <div class="flex items-center justify-center gap-4">
+                    <div class="h-[1px] w-12 md:w-24 bg-gradient-to-r from-transparent via-primary to-transparent">
+                    </div>
+                    <h2 class="text-sm md:text-lg font-medium tracking-[0.2em] text-primary/90 uppercase">Underground AI
+                        Radio Network</h2>
+                    <div class="h-[1px] w-12 md:w-24 bg-gradient-to-r from-transparent via-primary to-transparent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Decorative floating elements -->
+            <div class="absolute top-1/4 left-10 hidden lg:block opacity-20 pointer-events-none float-element">
+                <div class="border-l border-white/20 pl-4 space-y-2">
+                    <p class="text-xs font-mono">SYS.OPTIMAL</p>
+                    <p class="text-xs font-mono">LATENCY: <span id="latencyVal">12</span>ms</p>
+                    <p class="text-xs font-mono">ENCRYPTION: ON</p>
+                </div>
+            </div>
+            <div class="absolute bottom-1/3 right-10 hidden lg:block opacity-20 pointer-events-none float-element-alt">
+                <span class="material-symbols-outlined text-6xl rotate-12">wifi_tethering</span>
+            </div>
+        </main>
+
+        <!-- Bottom Status Bar -->
+        <footer id="statusBar" class="w-full border-t border-white/5 bg-surface-dark/90 backdrop-blur-xl relative z-20">
+            <div class="flex flex-col md:flex-row h-auto md:h-20">
+                <div
+                    class="flex-shrink-0 w-full md:w-1/3 border-b md:border-b-0 md:border-r border-white/5 p-4 flex items-center gap-4 group hover:bg-white/5 transition-colors cursor-pointer">
+                    <div
+                        class="relative size-12 rounded bg-slate-800 overflow-hidden shrink-0 shadow-lg shadow-primary/10">
+                        <div class="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
+                            style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAMzrtWYW_srnuxd0TWZf3o_ZOUEMN24bODox_gUkn60UpAvh7kNzAoFd7UtFwgAy5XOXO0l36-rAF8fgtQdRrlOKcByjsXRI45Y84LFSmcLTgbG3kVUr9vB734EEhv3a95-yFMRmZFs9cRvFqG_pEuPounGWT9uHNtNocdmUVSLK9w47BJCAnMYsd96c357X-m18hlNd_4-4IzeUva4Kciv83r_DVNMcL6b-RyBUSGKDb-KmcZuBVTHqcyLneuF6USeTYLVfNgKfIo');">
+                        </div>
+                        <div id="eqBars"
+                            class="absolute inset-0 flex items-end justify-center gap-[2px] pb-1 bg-black/30 opacity-0 transition-opacity duration-300">
+                            <div class="w-1 bg-primary/80 eq-bar" style="animation-duration:1s"></div>
+                            <div class="w-1 bg-primary/80 eq-bar" style="animation-duration:1.2s"></div>
+                            <div class="w-1 bg-primary/80 eq-bar" style="animation-duration:0.8s"></div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col overflow-hidden">
+                        <span id="nowPlayingLabel"
+                            class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Offline</span>
+                        <span class="text-white font-bold text-sm truncate">Cyberpunk Dreams</span>
+                        <span class="text-slate-400 text-xs truncate">The Glitch Mob • <span id="trackTime">0:00</span>
+                            / 5:12</span>
+                    </div>
+                </div>
+                <div
+                    class="flex-grow w-full md:w-1/3 border-b md:border-b-0 md:border-r border-white/5 p-4 flex items-center overflow-hidden bg-black/20 relative">
+                    <div
+                        class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-surface-dark/90 to-transparent z-10">
+                    </div>
+                    <div
+                        class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface-dark/90 to-transparent z-10">
+                    </div>
+                    <div
+                        class="flex items-center gap-2 text-primary font-mono text-xs whitespace-nowrap min-w-max marquee-text">
+                        <span class="material-symbols-outlined text-sm animate-pulse">smart_toy</span>
+                        <span>AI HOST: SYSTEM OPTIMAL // ANALYZING BEAT PATTERNS // HUMAN EMOTION DETECTED: MELANCHOLY
+                            // ADJUSTING BPM +5% // WELCOME TO THE NETWORK // DON'T FORGET TO DRINK WATER // </span>
+                        <span class="material-symbols-outlined text-sm animate-pulse">smart_toy</span>
+                        <span>AI HOST: SYSTEM OPTIMAL // ANALYZING BEAT PATTERNS // HUMAN EMOTION DETECTED: MELANCHOLY
+                            // ADJUSTING BPM +5% // WELCOME TO THE NETWORK // DON'T FORGET TO DRINK WATER // </span>
+                    </div>
+                </div>
+                <div class="flex-shrink-0 w-full md:w-1/3 p-4 flex items-center justify-between md:justify-end gap-6">
+                    <div class="flex items-center gap-2 text-slate-400">
+                        <div class="size-2 rounded-full bg-red-500 animate-pulse"></div>
+                        <span class="text-xs font-mono tracking-wide"><span id="listenerCount"
+                                class="text-white font-bold">4,203</span> LISTENING</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button id="favBtn" class="text-slate-400 hover:text-red-400 transition-colors ripple-btn"
+                            onclick="toggleFavorite(this)">
+                            <span class="material-symbols-outlined">favorite</span>
+                        </button>
+                        <button class="text-slate-400 hover:text-white transition-colors ripple-btn"
+                            onclick="shareStation()">
+                            <span class="material-symbols-outlined">share</span>
+                        </button>
+                        <button id="volBtn" class="text-slate-400 hover:text-white transition-colors ripple-btn"
+                            onclick="toggleMute()">
+                            <span class="material-symbols-outlined">volume_up</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- About Overlay -->
+    <div id="aboutOverlay" class="fixed inset-0 z-[100] pointer-events-none opacity-0 transition-opacity duration-500">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAboutOverlay()"></div>
+        <div class="relative z-10 w-full h-full overflow-y-auto flex flex-col items-center">
+            <header class="sticky top-0 z-40 w-full border-b border-white/5 bg-background-dark/80 backdrop-blur-md">
+                <div class="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
+                    <div class="flex items-center gap-3 text-white">
+                        <span class="material-symbols-outlined text-primary text-3xl">graphic_eq</span>
+                        <h2 class="text-white text-xl font-bold tracking-tight uppercase">Amaradio Manifesto</h2>
+                    </div>
+                    <button
+                        class="flex items-center justify-center size-10 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white"
+                        onclick="closeAboutOverlay()">
+                        <span class="material-symbols-outlined text-2xl">close</span>
+                    </button>
+                </div>
+            </header>
+            <section class="w-full max-w-[1440px] px-4 md:px-6 pt-12 pb-20 flex flex-col items-center">
+                <div class="w-full relative group">
+                    <div
+                        class="relative w-full aspect-[16/9] md:aspect-[21/9] overflow-hidden rounded-sm grayscale hover:grayscale-0 transition-all duration-1000 ease-in-out">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent z-10 opacity-80">
+                        </div>
+                        <img alt="Abstract synthesizer cables"
+                            class="w-full h-full object-cover object-center transform scale-105 group-hover:scale-100 transition-transform duration-1000"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDj0ZuUrdsA1E8p6N7Qi9lAzlxfPK3qY6al3stvS6Ng-t-lc8kTXgdns2SyqvJn6fCdAGG6JTRGEiXvdua7yC31qt0wSs5I0gACa3wpPchylpkO_uNGfvyT-j64c7545tIwj5P7PJjndMIjM26X3VhnMPzcynBug529m_2JDxOoWw7qnyT0n-_1j1WPrb7kBWawjNg8rrCjYQ69wx3pV0C1WCozjeNY1zxNs44HBFHrWDloNHMbTfyU79OssIHbElg8h7u7UVCMW7X9" />
+                        <div class="absolute bottom-0 left-0 w-full p-6 md:p-12 z-20 flex flex-col items-start">
+                            <span
+                                class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/50 bg-primary/20 backdrop-blur-sm text-primary text-xs font-bold tracking-widest uppercase mb-6">
+                                <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span> Read The Vision
+                            </span>
+                            <h1
+                                class="text-5xl md:text-8xl lg:text-9xl font-bold leading-[0.85] tracking-tighter text-white uppercase mix-blend-difference">
+                                Amaradio<br />Manifesto</h1>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="w-full max-w-3xl px-6 pb-32 relative">
+                <div
+                    class="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-primary/50 via-primary/10 to-transparent -ml-12 h-full hidden md:block">
+                </div>
+                <div class="flex flex-col gap-12">
+                    <div class="flex flex-col gap-4">
+                        <h2 class="text-primary text-sm font-bold tracking-[0.2em] uppercase">Signal from the Noise</h2>
+                        <p class="text-2xl md:text-4xl font-light leading-tight text-white">
+                            We are the ghost in the machine. Not curated by human hands, but <span
+                                class="text-primary font-normal">hallucinated by silicon dreams.</span>
+                        </p>
+                    </div>
+                    <div
+                        class="space-y-6 text-lg md:text-xl text-slate-400 font-light leading-relaxed border-l-2 border-primary/20 pl-6 md:pl-0 md:border-none">
+                        <p>In an era of algorithmic sameness, Amaradio stands as an anomaly. An endless, immersive
+                            stream of underground frequencies designed to bypass the logic centers and speak directly to
+                            the subconscious.</p>
+                        <p>This is not a playlist. It is a living, breathing entity powered by neural networks that
+                            understand mood, texture, and rhythm better than we do. From deep techno to ambient static,
+                            the stream evolves in real-time.</p>
+                        <p class="text-white font-medium">Welcome to the future of sound. Listen closely.</p>
+                    </div>
+                    <div class="pt-8 border-t border-white/5 flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <span class="text-xs text-slate-500 uppercase tracking-widest">Authorized By</span>
+                            <span class="font-mono text-white mt-1">CORE_SYSTEM_01</span>
+                        </div>
+                        <div class="h-12 w-12 border border-white/20 rounded-full flex items-center justify-center">
+                            <span class="material-symbols-outlined text-white/50 text-xl">fingerprint</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <div class="sticky bottom-8 z-30 mb-8">
+                <button
+                    class="relative group flex items-center justify-center overflow-hidden rounded-full h-14 px-8 bg-primary text-white shadow-[0_0_40px_-10px_rgba(108,13,242,0.6)] hover:shadow-[0_0_60px_-5px_rgba(108,13,242,0.8)] transition-all duration-300"
+                    onclick="closeAboutOverlay()">
+                    <div
+                        class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
+                    </div>
+                    <span class="relative flex items-center gap-3 text-base font-bold tracking-widest uppercase">
+                        <span class="material-symbols-outlined">arrow_back</span> Back to Live
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Slide-in Panel -->
+    <div id="schedulePanel" class="fixed inset-0 z-[90] pointer-events-none">
+        <div id="schedulePanelBackdrop"
+            class="absolute inset-0 bg-black/40 backdrop-blur-sm opacity-0 transition-opacity duration-300"
+            onclick="toggleSchedulePanel()"></div>
+        <aside id="schedulePanelContent"
+            class="absolute right-0 top-0 w-full max-w-[480px] h-full glass-panel shadow-2xl border-l border-white/5 flex flex-col z-10 translate-x-full transition-transform duration-500 ease-out">
+            <header class="flex items-center justify-between px-6 py-5 border-b border-white/5 shrink-0">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-primary animate-pulse">radio_button_checked</span>
+                    <h2 class="text-white text-lg font-bold tracking-widest uppercase">Transmission Log</h2>
+                </div>
+                <button
+                    class="flex items-center justify-center size-10 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white"
+                    onclick="toggleSchedulePanel()">
+                    <span class="material-symbols-outlined text-2xl">close</span>
+                </button>
+            </header>
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+                <!-- LIVE NOW -->
+                <section>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-white/50 text-xs font-bold tracking-widest uppercase">Current Signal</h3>
+                        <div class="flex items-center gap-1.5">
+                            <span class="relative flex h-2.5 w-2.5"><span
+                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span><span
+                                    class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span></span>
+                            <span class="text-primary text-xs font-bold tracking-wider">LIVE NOW</span>
+                        </div>
+                    </div>
+                    <div
+                        class="group relative rounded-2xl overflow-hidden bg-white/5 border border-white/10 hover:border-primary/50 transition-all duration-300">
+                        <div class="absolute inset-0 z-0">
+                            <img alt="DJ mixing console"
+                                class="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-500 group-hover:scale-105 transform"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHuSUZw6vo46rAf3HcoKukiKBk2nklugza4ggbAJZdtPAy4DMDR8HVwZwujJpP-XewAXsbcjNi3lk6KpnXuy4jIbw2ma230ndJFnhR20rwbmo1-iMd3otYXOdxYvtkq3aZfJ2hdSmjvIYXNC1DUTAT5-782D-dA7cRQmJFuPZz1iJ0LtNY8H39qMwkfhpegluXi9fndoSJ0Q-OUQ2vsSdJd-GE6796K9raU6pXJRAc5M7b9CTzEATM1dIIC5qxi1ghUr1Lyg-J3dEo" />
+                            <div
+                                class="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/80 to-transparent">
+                            </div>
+                        </div>
+                        <div class="relative z-10 p-5 flex flex-col h-[280px] justify-between">
+                            <div class="flex items-end justify-end gap-1 h-8 self-end" id="panelEqBars">
+                                <div class="w-1 bg-primary rounded-full h-3 eq-bar"></div>
+                                <div class="w-1 bg-primary rounded-full h-6 eq-bar" style="animation-delay:.1s"></div>
+                                <div class="w-1 bg-primary rounded-full h-4 eq-bar" style="animation-delay:.2s"></div>
+                                <div class="w-1 bg-primary rounded-full h-7 eq-bar" style="animation-delay:.3s"></div>
+                                <div class="w-1 bg-primary rounded-full h-2 eq-bar" style="animation-delay:.4s"></div>
+                            </div>
+                            <div>
+                                <span
+                                    class="inline-block px-2.5 py-1 rounded-full bg-primary/20 text-primary text-[10px] font-bold tracking-wide border border-primary/30 mb-2 backdrop-blur-md">DEEP
+                                    HOUSE</span>
+                                <h4 class="text-white text-2xl font-bold leading-tight mb-1">AI DJ-X4</h4>
+                                <p class="text-white/70 text-sm font-medium mb-4">Deep House Protocol • Synthetic Soul
+                                </p>
+                                <button
+                                    class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white py-3 rounded-full font-bold text-sm transition-all shadow-[0_0_20px_rgba(108,13,242,0.3)] hover:shadow-[0_0_30px_rgba(108,13,242,0.5)] ripple-btn"
+                                    onclick="togglePlayback()">
+                                    <span class="material-symbols-outlined text-[20px]"
+                                        style="font-variation-settings:'FILL' 1">play_arrow</span> LISTEN LIVE
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <!-- UPCOMING -->
+                <section>
+                    <h3 class="text-white/50 text-xs font-bold tracking-widest uppercase mb-4">Up Next</h3>
+                    <div class="flex flex-col gap-3">
+                        <div
+                            class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer border border-transparent hover:border-white/5">
+                            <div class="relative shrink-0 size-16 rounded-lg overflow-hidden bg-white/10">
+                                <img alt="Dark wave pattern" class="w-full h-full object-cover"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpb601GUZHQSXwa93m9y7S1khYDZn_5Dm1qYh7GfiAwNIuyWUxlQJIKfwRkkdXlGYk_jeDdPRLx5H-FF3eOPEj9MK8Xegtt3Diiu_0RIHX18pTuQWFau32W-kaA78haV_gg2JAsF4ON30UbDSkBwSbVcceO7OXEjWGH8yZX6AUzwIXFq0-V2gHOg7rO7ITMQ5iX11WTH19gv-_-uCLz-rd8BK9kF20BIb6llsVkm_lTjoZgbZhdWXamy5n2nuzkDezArNXZBjakWXH" />
+                            </div>
+                            <div class="flex flex-col flex-1 min-w-0">
+                                <span class="text-white font-bold truncate pr-2">Night Session: Dark Wave</span>
+                                <div class="flex items-center gap-2 text-white/50 text-xs">
+                                    <span class="font-mono text-primary">23:00</span><span>•</span><span>Techno</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer border border-transparent hover:border-white/5">
+                            <div class="relative shrink-0 size-16 rounded-lg overflow-hidden bg-white/10">
+                                <img alt="Glitch art" class="w-full h-full object-cover"
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_WLF47QhQH8yqyG5e7hm4_XsfjS1oeARuWf31Jn8C1opE8HJCSomIctGWQrTPL1oACwt9bM17L-XSyKbDvWSjMjrATUicB5a8HRydWtkkWQzEUBAhXCnlYpvN1mMmYhiAprS_74i6ucXAniggS7k3rfdD417kjIitSTqZkvp4dlO66ZFC0TE1GeG9OrStUIhSP693JYErJdCiCwW_P4GsNO08TOoCC53jcVZP3YqAar8Ompy9x2Cb7VLw-jDNeGqg8hsYa_WYkaUA" />
+                            </div>
+                            <div class="flex flex-col flex-1 min-w-0">
+                                <span class="text-white font-bold truncate pr-2">Guest Mix: The Algorithm</span>
+                                <div class="flex items-center gap-2 text-white/50 text-xs">
+                                    <span class="font-mono text-primary">01:00</span><span>•</span><span>IDM /
+                                        Glitch</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <div class="pt-4 border-t border-white/5 text-center">
+                    <p class="text-white/30 text-[10px] uppercase tracking-widest">System Status: Online</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Hidden Audio -->
+    <audio id="radioAudio" loop preload="auto">
+        <source src="https://stream.zeno.fm/0r0xa792kwzuv" type="audio/mpeg" />
+    </audio>
+
+    <!-- Toast notification -->
+    <div id="toast"
+        class="fixed bottom-28 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-full bg-primary/90 backdrop-blur-md text-white text-sm font-bold tracking-wider shadow-2xl opacity-0 translate-y-4 transition-all duration-300 pointer-events-none">
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

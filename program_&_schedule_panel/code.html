@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Amaradio - Program Panel</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6c0df2",
+                        "background-light": "#f7f5f8",
+                        "background-dark": "#171022",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                    animation: {
+                        'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'sound-bar': 'sound-bar 1.2s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: '1', boxShadow: '0 0 10px #6c0df2' },
+                            '50%': { opacity: '.5', boxShadow: '0 0 0px #6c0df2' },
+                        },
+                        'sound-bar': {
+                            '0%, 100%': { height: '10%' },
+                            '50%': { height: '100%' },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for the panel */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(23, 16, 34, 0.5);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #6c0df2;
+            border-radius: 20px;
+        }
+        
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: rgba(23, 16, 34, 0.95);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 overflow-hidden relative w-full h-screen">
+<!-- Mock Main Background Content (To show overlay effect) -->
+<div class="absolute inset-0 z-0 flex items-center justify-center opacity-30 pointer-events-none overflow-hidden">
+<div class="w-full h-full bg-[url('https://images.unsplash.com/photo-1574169208507-84376144848b?q=80&amp;w=2079&amp;auto=format&amp;fit=crop')] bg-cover bg-center" data-alt="Abstract dark club atmosphere with purple lights"></div>
+</div>
+<!-- Main Overlay Panel Container -->
+<div class="fixed inset-0 z-50 flex justify-end">
+<!-- Backdrop (click to close area) -->
+<div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity opacity-100"></div>
+<!-- The Slide-in Panel -->
+<aside class="relative w-full max-w-[480px] h-full glass-panel shadow-2xl border-l border-white/5 flex flex-col z-10 animate-in slide-in-from-right duration-500">
+<!-- Header -->
+<header class="flex items-center justify-between px-6 py-5 border-b border-white/5 shrink-0">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary animate-pulse">
+                        radio_button_checked
+                    </span>
+<h2 class="text-white text-lg font-bold tracking-widest uppercase">Transmission Log</h2>
+</div>
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+</header>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+<!-- Section 1: LIVE NOW -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-white/50 text-xs font-bold tracking-widest uppercase">Current Signal</h3>
+<div class="flex items-center gap-1.5">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+</span>
+<span class="text-primary text-xs font-bold tracking-wider">LIVE NOW</span>
+</div>
+</div>
+<div class="group relative rounded-2xl overflow-hidden bg-white/5 border border-white/10 hover:border-primary/50 transition-all duration-300">
+<!-- Background Image with Overlay -->
+<div class="absolute inset-0 z-0">
+<img alt="DJ mixing console in dark purple lighting" class="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-500 group-hover:scale-105 transform" data-alt="DJ mixing console in dark purple lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHuSUZw6vo46rAf3HcoKukiKBk2nklugza4ggbAJZdtPAy4DMDR8HVwZwujJpP-XewAXsbcjNi3lk6KpnXuy4jIbw2ma230ndJFnhR20rwbmo1-iMd3otYXOdxYvtkq3aZfJ2hdSmjvIYXNC1DUTAT5-782D-dA7cRQmJFuPZz1iJ0LtNY8H39qMwkfhpegluXi9fndoSJ0Q-OUQ2vsSdJd-GE6796K9raU6pXJRAc5M7b9CTzEATM1dIIC5qxi1ghUr1Lyg-J3dEo"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/80 to-transparent"></div>
+</div>
+<div class="relative z-10 p-5 flex flex-col h-[280px] justify-between">
+<!-- Visualizer Mockup -->
+<div class="flex items-end justify-end gap-1 h-8 self-end">
+<div class="w-1 bg-primary rounded-full h-3 animate-[sound-bar_1s_ease-in-out_infinite]"></div>
+<div class="w-1 bg-primary rounded-full h-6 animate-[sound-bar_1.2s_ease-in-out_infinite_0.1s]"></div>
+<div class="w-1 bg-primary rounded-full h-4 animate-[sound-bar_0.8s_ease-in-out_infinite_0.2s]"></div>
+<div class="w-1 bg-primary rounded-full h-7 animate-[sound-bar_1.1s_ease-in-out_infinite_0.3s]"></div>
+<div class="w-1 bg-primary rounded-full h-2 animate-[sound-bar_0.9s_ease-in-out_infinite_0.4s]"></div>
+</div>
+<!-- Info -->
+<div>
+<span class="inline-block px-2.5 py-1 rounded-full bg-primary/20 text-primary text-[10px] font-bold tracking-wide border border-primary/30 mb-2 backdrop-blur-md">
+                                    DEEP HOUSE
+                                </span>
+<h4 class="text-white text-2xl font-bold leading-tight mb-1">AI DJ-X4</h4>
+<p class="text-white/70 text-sm font-medium mb-4">Deep House Protocol • Synthetic Soul</p>
+<button class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white py-3 rounded-full font-bold text-sm transition-all shadow-[0_0_20px_rgba(108,13,242,0.3)] hover:shadow-[0_0_30px_rgba(108,13,242,0.5)]">
+<span class="material-symbols-outlined text-[20px] fill-1">play_arrow</span>
+                                    LISTEN LIVE
+                                </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: UPCOMING -->
+<section>
+<h3 class="text-white/50 text-xs font-bold tracking-widest uppercase mb-4">Up Next</h3>
+<div class="flex flex-col gap-3">
+<!-- Upcoming Item 1 -->
+<div class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer border border-transparent hover:border-white/5">
+<div class="relative shrink-0 size-16 rounded-lg overflow-hidden bg-white/10">
+<img alt="Abstract dark wave pattern" class="w-full h-full object-cover" data-alt="Abstract dark wave pattern" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpb601GUZHQSXwa93m9y7S1khYDZn_5Dm1qYh7GfiAwNIuyWUxlQJIKfwRkkdXlGYk_jeDdPRLx5H-FF3eOPEj9MK8Xegtt3Diiu_0RIHX18pTuQWFau32W-kaA78haV_gg2JAsF4ON30UbDSkBwSbVcceO7OXEjWGH8yZX6AUzwIXFq0-V2gHOg7rO7ITMQ5iX11WTH19gv-_-uCLz-rd8BK9kF20BIb6llsVkm_lTjoZgbZhdWXamy5n2nuzkDezArNXZBjakWXH"/>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-all"></div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex items-center justify-between mb-0.5">
+<span class="text-white font-bold truncate pr-2">Night Session: Dark Wave</span>
+<button class="text-white/30 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+</div>
+<div class="flex items-center gap-2 text-white/50 text-xs">
+<span class="font-mono text-primary">23:00</span>
+<span>•</span>
+<span>Techno</span>
+</div>
+</div>
+</div>
+<!-- Upcoming Item 2 -->
+<div class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer border border-transparent hover:border-white/5">
+<div class="relative shrink-0 size-16 rounded-lg overflow-hidden bg-white/10">
+<img alt="Glitch art abstract background" class="w-full h-full object-cover" data-alt="Glitch art abstract background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_WLF47QhQH8yqyG5e7hm4_XsfjS1oeARuWf31Jn8C1opE8HJCSomIctGWQrTPL1oACwt9bM17L-XSyKbDvWSjMjrATUicB5a8HRydWtkkWQzEUBAhXCnlYpvN1mMmYhiAprS_74i6ucXAniggS7k3rfdD417kjIitSTqZkvp4dlO66ZFC0TE1GeG9OrStUIhSP693JYErJdCiCwW_P4GsNO08TOoCC53jcVZP3YqAar8Ompy9x2Cb7VLw-jDNeGqg8hsYa_WYkaUA"/>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-all"></div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex items-center justify-between mb-0.5">
+<span class="text-white font-bold truncate pr-2">Guest Mix: The Algorithm</span>
+<button class="text-white/30 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</button>
+</div>
+<div class="flex items-center gap-2 text-white/50 text-xs">
+<span class="font-mono text-primary">01:00</span>
+<span>•</span>
+<span>IDM / Glitch</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: HIGHLIGHTS -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-white/50 text-xs font-bold tracking-widest uppercase">Highlights Archive</h3>
+<a class="text-xs text-primary hover:text-primary/80 transition-colors" href="#">View All</a>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<!-- Highlight 1 -->
+<div class="group relative aspect-square rounded-xl overflow-hidden cursor-pointer">
+<img alt="Surfer in the ocean waves" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Surfer in the ocean waves" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDoCfmdMelRRB6iX4OMOprYA9or7mBwcJJQ39HD24MsVQOGOM0ZZNcoqFn1wykXMA4KzlbKmdmKBgLcHvWbBx3PmrSjyRb5LL6MFzsgaqKUq9hWkurkiYBg083EckIn2nXf8eB21Y5CExiMe3fm-GX2osqJ-fwlSd0arUR8n_T8g8h8aY0ZZTCVQO0HrdGji7e0_szdXoqSTYDwYJUe2xStoll-mXeW-H1V7Ih4nFEVOEHfT9rNNiVH1-haz6Ilzl3c9zbRGT3aAXYG"/>
+<div class="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-white opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 text-3xl">play_circle</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
+<p class="text-[10px] text-white font-bold truncate">Berlin Underground</p>
+</div>
+</div>
+<!-- Highlight 2 -->
+<div class="group relative aspect-square rounded-xl overflow-hidden cursor-pointer">
+<img alt="Neon city street at night" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Neon city street at night" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDcqpb5oxtj2dwvCY4va9zza3GyJ1sLsDRcscKvV-rXnfD7ARBpgaPhmEts1YplSShNBon5SlRotgVRfaPP7dUydBR-kRYSCFh_vz_gHiRVbyGMETQS-YJ_Ap-1PB7cyHcX1AkA_4-lqC6UNJz-QP1n5Ox5wUh5Nf-Ry5tiugSC2PkoeZXUOOTdCZySCBHjKPtuZ2dkJRZae7T2UeMul2c6ylzvdoKbzpehMY5VIJ8PipCbqvY6OruOVgxrMbtkFY1Nxp_J-4qzdS9"/>
+<div class="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-white opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 text-3xl">play_circle</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
+<p class="text-[10px] text-white font-bold truncate">Cyberpunk Beats</p>
+</div>
+</div>
+<!-- Highlight 3 -->
+<div class="group relative aspect-square rounded-xl overflow-hidden cursor-pointer">
+<img alt="Retro computer aesthetic" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="Retro computer aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAs4SMwjKDdJDWeecKksvjkV1qXVqefzNmCM2O_UCpTlXucEIqqtMvKQsXo3dZDRSUxPAsHhpcvjIUL354vaiDGUE0t3UAlGSHQQoblsFyK0qIu6IDMFDQvyEXnniw3RRBcqS2nahLdXSIM0Ns4nyS_RhdLfVvqBf_sCVu7Zk0C2t1xbeqoYDY5X0PKD64YDsntSop8uOqzVCOJgvRiQ6Aom_-K3kTbTcnlIfKjl7LMdyPLztvgsl2_9rDULlxDyJxBjiY_Y8_AKJTm"/>
+<div class="absolute inset-0 bg-black/40 group-hover:bg-black/60 transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-white opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 text-3xl">play_circle</span>
+</div>
+<div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
+<p class="text-[10px] text-white font-bold truncate">Lo-Fi Glitch</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer Info -->
+<div class="pt-4 border-t border-white/5 text-center">
+<p class="text-white/30 text-[10px] uppercase tracking-widest">System Status: Online</p>
+</div>
+</div>
+</aside>
+</div>
+</body></html>

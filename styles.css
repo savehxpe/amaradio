@@ -1,0 +1,207 @@
+/* ═══════════════════════════════════════════
+   AMARADIO — Design System & Animations
+   ═══════════════════════════════════════════ */
+
+:root {
+  --primary: #6c0df2;
+  --primary-rgb: 108, 13, 242;
+  --bg-dark: #050505;
+  --surface-dark: #141118;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg-dark);
+  color: #f1f5f9;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: #2f2839; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(23,16,34,0.5); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--primary); border-radius: 20px; }
+
+/* ─── Grid Background ─── */
+.bg-grid {
+  background-size: 50px 50px;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+}
+
+/* ─── Glass Panel ─── */
+.glass-panel {
+  background: rgba(23, 16, 34, 0.95);
+  backdrop-filter: blur(12px);
+}
+
+/* ═══════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════ */
+
+/* ─── 1. Neon Pulsing Glow on Play Button ─── */
+.neon-pulse {
+  animation: neonPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes neonPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 20px var(--primary), 0 0 60px rgba(var(--primary-rgb), 0.3); }
+  50% { opacity: 0.7; box-shadow: 0 0 50px var(--primary), 0 0 100px rgba(var(--primary-rgb), 0.5); }
+}
+
+.neon-pulse-active {
+  animation: neonPulseActive 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes neonPulseActive {
+  0%, 100% { opacity: 1; box-shadow: 0 0 30px var(--primary), 0 0 80px rgba(var(--primary-rgb), 0.4); }
+  50% { opacity: 0.8; box-shadow: 0 0 60px var(--primary), 0 0 120px rgba(var(--primary-rgb), 0.6); }
+}
+
+/* ─── 2. Hover Ripple Effect ─── */
+.ripple-btn { position: relative; overflow: hidden; }
+.ripple-btn .ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(var(--primary-rgb), 0.4);
+  transform: scale(0);
+  animation: rippleEffect 0.6s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes rippleEffect {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* ─── 3. Animated Waveform ─── */
+.waveform-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(to top, var(--primary), #a855f7);
+  transition: height 0.15s ease;
+  min-height: 4px;
+}
+.waveform-bar.active {
+  animation: waveformPulse var(--duration) ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+@keyframes waveformPulse {
+  0%, 100% { height: 8px; opacity: 0.5; }
+  50% { height: var(--max-height); opacity: 1; }
+}
+
+/* ─── 4. EQ Bars ─── */
+.eq-bar {
+  animation: eqBounce 1s ease-in-out infinite;
+}
+@keyframes eqBounce {
+  0%, 100% { height: 4px; }
+  50% { height: 100%; }
+}
+
+/* ─── 5. Subtle Background Motion ─── */
+.bg-motion {
+  animation: bgDrift 30s ease-in-out infinite;
+}
+@keyframes bgDrift {
+  0%, 100% { transform: scale(1.05) translate(0, 0); }
+  25% { transform: scale(1.08) translate(-0.5%, 0.5%); }
+  50% { transform: scale(1.06) translate(0.5%, -0.3%); }
+  75% { transform: scale(1.07) translate(-0.3%, -0.5%); }
+}
+
+/* ─── 6. Floating decorative elements ─── */
+.float-element {
+  animation: floatUp 6s ease-in-out infinite;
+}
+.float-element-alt {
+  animation: floatUp 8s ease-in-out infinite reverse;
+}
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+/* ─── 7. Section Fade Transitions ─── */
+.section-fade {
+  animation: sectionFadeIn 1s ease-out both;
+}
+@keyframes sectionFadeIn {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── 8. Glitch Text Hover ─── */
+.glitch-hover:hover {
+  animation: glitch 0.3s cubic-bezier(.25,.46,.45,.94) both infinite;
+  color: var(--primary);
+}
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0); }
+}
+
+/* ─── 9. Marquee ─── */
+.marquee-text {
+  animation: marquee 25s linear infinite;
+}
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* ─── 10. Nav underline ─── */
+.nav-underline {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+.nav-link:hover .nav-underline { width: 100%; }
+
+/* ─── Tailwind-like utility classes ─── */
+.bg-background-dark { background-color: var(--bg-dark); }
+.bg-surface-dark { background-color: var(--surface-dark); }
+.bg-primary { background-color: var(--primary); }
+.text-primary { color: var(--primary); }
+
+/* ─── About overlay active ─── */
+#aboutOverlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─── Schedule panel active ─── */
+#schedulePanel.active { pointer-events: auto; }
+#schedulePanel.active #schedulePanelBackdrop { opacity: 1; }
+#schedulePanel.active #schedulePanelContent { transform: translateX(0); }
+
+/* ─── Toast active ─── */
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ─── Playing state modifications ─── */
+body.is-playing #playIcon { font-variation-settings: 'FILL' 1, 'wght' 700; }
+
+/* ─── Media queries ─── */
+@media (max-width: 768px) {
+  #schedulePanel aside { max-width: 100%; }
+}
+
+/* ─── Particle canvas ─── */
+#particleCanvas {
+  width: 100%;
+  height: 100%;
+  opacity: 0.3;
+}
